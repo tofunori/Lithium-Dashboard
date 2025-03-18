@@ -133,13 +133,39 @@ function deleteRefinery(id) {
 
 // Fonction pour mettre à jour tout le dashboard
 function updateDashboard() {
-    const filteredRefineries = filterRefineries();
-    updateMapMarkers(filteredRefineries);
-    updateCountriesView(filteredRefineries);
-    updateTable(filteredRefineries);
-    updateStats(filteredRefineries);
-    updateCharts(filteredRefineries);
+    console.log("Mise à jour du dashboard en cours...");
+    
+    try {
+        const filteredRefineries = filterRefineries();
+        
+        if (typeof updateMapMarkers === 'function') {
+            updateMapMarkers(filteredRefineries);
+        }
+        
+        if (typeof updateCountriesView === 'function') {
+            updateCountriesView(filteredRefineries);
+        }
+        
+        if (typeof updateTable === 'function') {
+            updateTable(filteredRefineries);
+        }
+        
+        if (typeof updateStats === 'function') {
+            updateStats(filteredRefineries);
+        }
+        
+        if (typeof updateCharts === 'function') {
+            updateCharts(filteredRefineries);
+        }
+        
+        console.log("Dashboard mis à jour avec succès.");
+    } catch (e) {
+        console.error("Erreur lors de la mise à jour du dashboard:", e);
+    }
 }
+
+// Exposer updateDashboard dans l'espace global
+window.updateDashboard = updateDashboard;
 
 // Fonction pour basculer le thème sombre/clair
 function toggleDarkMode() {
@@ -176,16 +202,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadData();
     
     // Mettre à jour les statistiques globales immédiatement
-    updateGlobalStats();
+    if (typeof updateGlobalStats === 'function') {
+        updateGlobalStats();
+    }
     
     // Appliquer le thème
     applyTheme();
     
     // Initialiser la carte
-    initMap();
+    if (typeof initMap === 'function') {
+        initMap();
+    }
     
     // Initialiser les graphiques
-    initCharts();
+    if (typeof initCharts === 'function') {
+        initCharts();
+    }
     
     // Appliquer les filtres de l'URL
     applyUrlFilters();
@@ -194,19 +226,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateDashboard();
     
     // Mettre à jour l'affichage de la valeur du filtre de capacité
-    capacityValue.textContent = capacityFilter.value;
+    if (capacityValue && capacityFilter) {
+        capacityValue.textContent = capacityFilter.value;
+    }
     
     // Gestionnaires d'événements
-    countryFilter.addEventListener('change', updateDashboard);
-    statusFilter.addEventListener('change', updateDashboard);
+    if (countryFilter) {
+        countryFilter.addEventListener('change', updateDashboard);
+    }
     
-    capacityFilter.addEventListener('input', () => {
-        capacityValue.textContent = capacityFilter.value;
+    if (statusFilter) {
+        statusFilter.addEventListener('change', updateDashboard);
+    }
+    
+    if (capacityFilter && capacityValue) {
+        capacityFilter.addEventListener('input', () => {
+            capacityValue.textContent = capacityFilter.value;
+            updateDashboard();
+        });
+    }
+    
+    if (exportJsonBtn) {
+        exportJsonBtn.addEventListener('click', exportJSON);
+    }
+    
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', toggleDarkMode);
+    }
+    
+    // Écouter les événements de mise à jour des données
+    document.addEventListener('lithium_data_updated', function() {
+        console.log("Événement de mise à jour reçu dans main.js");
         updateDashboard();
     });
-    
-    exportJsonBtn.addEventListener('click', exportJSON);
-    themeToggleBtn.addEventListener('click', toggleDarkMode);
     
     // Fermer le modal si on clique en dehors
     window.addEventListener('click', (e) => {
