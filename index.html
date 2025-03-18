@@ -12,6 +12,8 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/styles.css" />
     
+    <!-- Cache Buster - Doit être chargé en premier -->
+    <script src="js/cache-buster.js"></script>
 </head>
 <body>
     <div class="container">
@@ -160,18 +162,19 @@
         <div class="card">
             <h2>Tableau des Installations de Recyclage</h2>
             <div class="table-container">
-                <table>
+                <table id="refineries-table">
                     <thead>
                         <tr>
                             <th>Nom</th>
                             <th>Emplacement</th>
+                            <th>Pays</th>
                             <th>Statut</th>
-                            <th>Capacité (tpa)</th>
+                            <th>Production</th>
                             <th>Technologie</th>
-                            <th>Actions</th>
+                            <th>Site web</th>
                         </tr>
                     </thead>
-                    <tbody id="refineries-table-body">
+                    <tbody>
                         <!-- Dynamiquement rempli par JavaScript -->
                     </tbody>
                 </table>
@@ -270,7 +273,7 @@
         
         <footer style="margin-top: 30px; text-align: center; color: #666;">
             <p>Dashboard des Installations de Recyclage de Batteries de Véhicules Électriques en Amérique du Nord - Mis à jour le 18 mars 2025</p>
-            <p><a href="https://github.com/tofunori/battery-recycling-dashboard" target="_blank">Code source sur GitHub</a></p>
+            <p><a href="https://github.com/tofunori/Lithium-Dashboard" target="_blank">Code source sur GitHub</a></p>
         </footer>
     </div>
 
