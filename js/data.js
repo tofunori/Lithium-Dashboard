@@ -249,8 +249,25 @@ const CHART_COLORS = ['#4a6bff', '#ff7043', '#ffca28', '#66bb6a', '#ab47bc'];
 // API URL - peut être remplacée par une vraie API
 const API_URL = 'https://my-json-server.typicode.com/tofunori/battery-recycling-dashboard';
 
+// Version pour le contrôle des données
+const DATA_VERSION = '2025-03-18';
+
 // Fonction pour charger les données
 async function loadData() {
+    // Vérifier si les données du localStorage sont à jour
+    const storedVersion = localStorage.getItem('lithiumRefineriesVersion');
+    
+    // Effacer et remplacer toujours par les nouvelles données si 
+    // la version stockée ne correspond pas à la version actuelle
+    if (storedVersion !== DATA_VERSION) {
+        console.log('Mise à jour des données depuis data.js (nouvelle version)');
+        localStorage.removeItem('lithiumRefineries');
+        localStorage.setItem('lithiumRefineriesVersion', DATA_VERSION);
+        localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
+        return;
+    }
+    
+    // Sinon, utiliser les données stockées si elles existent
     const savedData = localStorage.getItem('lithiumRefineries');
     if (savedData) {
         try {
@@ -258,7 +275,12 @@ async function loadData() {
             return;
         } catch (e) {
             console.error('Erreur lors du chargement des données locales:', e);
+            // En cas d'erreur, remettre les données par défaut
+            localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
         }
+    } else {
+        // Si pas de données, utiliser les données par défaut
+        localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
     }
     
     try {
@@ -270,7 +292,6 @@ async function loadData() {
             localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
         }
         */
-        localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
     } catch (e) {
         console.error('Erreur lors du chargement des données depuis l\'API:', e);
     }
@@ -279,6 +300,7 @@ async function loadData() {
 // Fonction pour sauvegarder les données
 async function saveData() {
     localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
+    localStorage.setItem('lithiumRefineriesVersion', DATA_VERSION);
     
     // Simulation de sauvegarde vers une API (commentée)
     /*
