@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administration - Dashboard Recyclage de Batteries VE</title>
+    
+    <!-- Styles -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -213,6 +215,8 @@
             color: #333;
         }
     </style>
+</head>
+<body>
     <!-- Script d'authentification - Doit être chargé en premier -->
     <script src="js/auth.js"></script>
     <script>
@@ -221,8 +225,7 @@
             protectAdminPage();
         });
     </script>
-</head>
-<body>
+    
     <header>
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h1>Administration - Dashboard Recyclage de Batteries VE</h1>
@@ -233,14 +236,14 @@
     </header>
     
     <div class="tabs">
-        <div class="tab active" data-tab="table">Tableau des installations</div>
-        <div class="tab" data-tab="editor">Éditeur JSON</div>
-        <div class="tab" data-tab="importer">Importer des données</div>
-        <div class="tab" data-tab="help">Instructions</div>
+        <div class="tab" id="table-nav" data-tab="table">Tableau des installations</div>
+        <div class="tab" id="editor-nav" data-tab="editor">Éditeur JSON</div>
+        <div class="tab" id="importer-nav" data-tab="importer">Importer des données</div>
+        <div class="tab" id="help-nav" data-tab="help">Instructions</div>
     </div>
     
     <!-- Nouveau tableau des installations -->
-    <div id="table-tab" class="tab-content active">
+    <div id="table-tab" class="tab-content">
         <div class="panel">
             <div class="action-bar">
                 <h2>Gestion des installations de recyclage</h2>
@@ -539,24 +542,32 @@
     <script src="js/admin-uploader.js"></script>
     <script src="js/admin-table.js"></script>
     <script>
+        // Fonction pour activer un onglet
+        function activateTab(tabName) {
+            // Désactiver tous les onglets
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            // Activer l'onglet spécifié
+            document.getElementById(tabName + '-nav').classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            console.log(`Onglet activé: ${tabName}`);
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("Initialisation de la page d'administration...");
+            
             // Gestion des onglets
             const tabs = document.querySelectorAll('.tab');
-            
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
-                    // Désactiver tous les onglets
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    
-                    // Activer l'onglet sélectionné
-                    tab.classList.add('active');
                     const tabName = tab.getAttribute('data-tab');
-                    document.getElementById(`${tabName}-tab`).classList.add('active');
+                    activateTab(tabName);
                 });
             });
             
-            // Initialisation de l'éditeur JSON existant
+            // Initialisation de l'éditeur JSON
             document.getElementById('loadButton').addEventListener('click', async function() {
                 try {
                     const response = await fetch('data/refineries.json');
@@ -575,34 +586,6 @@
                 }
             });
             
-            // Initialisation de l'importateur
-            document.getElementById('importButton').addEventListener('click', function() {
-                const fileInput = document.getElementById('fileInput');
-                const file = fileInput.files[0];
-                
-                if (!file) {
-                    showNotification(document.getElementById('notification'), 'Veuillez sélectionner un fichier', 'error');
-                    return;
-                }
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const parsedData = JSON.parse(e.target.result);
-                        document.getElementById('jsonEditor').value = JSON.stringify(parsedData, null, 2);
-                        
-                        if (parsedData.version) {
-                            document.getElementById('versionInfo').textContent = `Version actuelle: ${parsedData.version}`;
-                        }
-                        
-                        showNotification(document.getElementById('notification'), 'Fichier importé avec succès!', 'success');
-                    } catch (error) {
-                        showNotification(document.getElementById('notification'), `Erreur lors de l'importation du fichier: ${error.message}`, 'error');
-                    }
-                };
-                reader.readAsText(file);
-            });
-            
             // Initialisation de la fonctionnalité GitHub Upload
             document.getElementById('upload-github-btn').addEventListener('click', function() {
                 document.getElementById('github-modal').style.display = 'block';
@@ -616,8 +599,11 @@
                 document.getElementById('github-modal').style.display = 'none';
             });
             
-            // Fonction pour charger les données au démarrage
-            document.getElementById('loadButton').click();
+            // Activer l'onglet Tableau par défaut
+            setTimeout(() => {
+                activateTab('table');
+                console.log("Onglet tableau activé par défaut");
+            }, 100);
         });
     </script>
 </body>
