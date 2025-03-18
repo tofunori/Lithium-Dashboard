@@ -163,24 +163,76 @@ function updateTable(filteredRefineries) {
     });
 }
 
-// Mettre à jour les statistiques
-function updateStats(filteredRefineries) {
+// Mettre à jour les statistiques globales (avec toutes les installations)
+function updateGlobalStats() {
     const totalRefineries = document.getElementById('total-refineries');
     const operationalRefineries = document.getElementById('operational-refineries');
     const constructionRefineries = document.getElementById('construction-refineries');
     const totalCapacity = document.getElementById('total-capacity');
     
-    totalRefineries.textContent = filteredRefineries.length;
-    operationalRefineries.textContent = filteredRefineries.filter(r => r.status === 'Opérationnel').length;
-    constructionRefineries.textContent = filteredRefineries.filter(r => r.status === 'En construction').length;
+    // Utiliser toutes les installations, pas seulement les filtrées
+    totalRefineries.textContent = refineries.length;
+    operationalRefineries.textContent = refineries.filter(r => r.status === 'Opérationnel').length;
+    constructionRefineries.textContent = refineries.filter(r => r.status === 'En construction').length;
     
     // Calculer la capacité totale
     let capacity = 0;
-    filteredRefineries.forEach(refinery => {
+    refineries.forEach(refinery => {
         if (refinery.production !== 'N/A' && refinery.production !== 'Variable') {
-            capacity += parseInt(refinery.production.replace(/,/g, '')) || 0;
+            // Extraire les chiffres de la chaîne de production
+            const match = refinery.production.match(/\d[\d\s]*[\d,\.]+/);
+            if (match) {
+                // Nettoyer et convertir en nombre
+                const cleanNum = match[0].replace(/\s/g, '').replace(/,/g, '').replace(/\./g, '');
+                const num = parseInt(cleanNum);
+                if (!isNaN(num)) {
+                    capacity += num;
+                }
+            }
         }
     });
     
     totalCapacity.textContent = capacity.toLocaleString();
+}
+
+// Mettre à jour les statistiques filtrées
+function updateStats(filteredRefineries) {
+    // Premièrement, mettre à jour les statistiques globales
+    updateGlobalStats();
+    
+    // Si aucun filtre n'est activé, nous avons déjà les bonnes statistiques
+    const countryFilter = document.getElementById('country-filter').value;
+    const statusFilter = document.getElementById('status-filter').value;
+    const capacityFilter = parseInt(document.getElementById('capacity-filter').value) || 0;
+    
+    // Si des filtres sont actifs, mettre à jour les statistiques avec les données filtrées
+    if (countryFilter !== 'all' || statusFilter !== 'all' || capacityFilter > 0) {
+        const totalRefineries = document.getElementById('total-refineries');
+        const operationalRefineries = document.getElementById('operational-refineries');
+        const constructionRefineries = document.getElementById('construction-refineries');
+        const totalCapacity = document.getElementById('total-capacity');
+        
+        totalRefineries.textContent = filteredRefineries.length;
+        operationalRefineries.textContent = filteredRefineries.filter(r => r.status === 'Opérationnel').length;
+        constructionRefineries.textContent = filteredRefineries.filter(r => r.status === 'En construction').length;
+        
+        // Calculer la capacité totale des installations filtrées
+        let capacity = 0;
+        filteredRefineries.forEach(refinery => {
+            if (refinery.production !== 'N/A' && refinery.production !== 'Variable') {
+                // Extraire les chiffres de la chaîne de production
+                const match = refinery.production.match(/\d[\d\s]*[\d,\.]+/);
+                if (match) {
+                    // Nettoyer et convertir en nombre
+                    const cleanNum = match[0].replace(/\s/g, '').replace(/,/g, '').replace(/\./g, '');
+                    const num = parseInt(cleanNum);
+                    if (!isNaN(num)) {
+                        capacity += num;
+                    }
+                }
+            }
+        });
+        
+        totalCapacity.textContent = capacity.toLocaleString();
+    }
 }
