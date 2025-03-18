@@ -22,7 +22,7 @@ let refineries = [
         status: "Opérationnel",
         production: "10 000-20 000 tonnes de batteries par an",
         processing: "Procédé hydrométallurgique en deux étapes",
-        notes: "Produit de la masse noire, usine d’hydrométallurgie pour matériaux avancés prévue pour 2026.",
+        notes: "Produit de la masse noire, usine d'hydrométallurgie pour matériaux avancés prévue pour 2026.",
         website: "https://www.lithiontechnologies.com/"
     },
     {
@@ -70,7 +70,7 @@ let refineries = [
         status: "Opérationnel",
         production: "N/A",
         processing: "Procédé hydrométallurgique",
-        notes: "Produit de la masse noire, partie d’un réseau de traitement plus large.",
+        notes: "Produit de la masse noire, partie d'un réseau de traitement plus large.",
         website: "https://www.cirbasolutions.com/"
     },
 
@@ -84,7 +84,7 @@ let refineries = [
         status: "Opérationnel",
         production: "N/A",
         processing: "Hydrométallurgie",
-        notes: "Traite les batteries lithium-ion pour produire des sels de lithium et des 'cakes' de cobalt, récupérant jusqu’à 95 % des métaux critiques.",
+        notes: "Traite les batteries lithium-ion pour produire des sels de lithium et des 'cakes' de cobalt, récupérant jusqu'à 95 % des métaux critiques.",
         website: "https://www.cirbasolutions.com/"
     },
     {
@@ -324,7 +324,7 @@ function filterRefineries() {
     });
 }
 
-// Fonction pour mettre à jour l’affichage
+// Fonction pour mettre à jour l'affichage
 function updateDisplay() {
     const filteredRefineries = filterRefineries();
     const tbody = document.querySelector('#refineries-table tbody');
@@ -356,7 +356,7 @@ function exportJSON() {
     link.click();
 }
 
-// Génération d’un lien de partage avec les filtres appliqués
+// Génération d'un lien de partage avec les filtres appliqués
 function generateShareLink() {
     const url = new URL(window.location.href);
     url.searchParams.set('country', document.getElementById('country-filter').value);
@@ -365,7 +365,7 @@ function generateShareLink() {
     return url.toString();
 }
 
-// Appliquer les filtres de l’URL
+// Appliquer les filtres de l'URL
 function applyUrlFilters() {
     const params = new URLSearchParams(window.location.search);
     
@@ -382,13 +382,13 @@ function applyUrlFilters() {
     }
 }
 
-// Initialisation de l’application
+// Initialisation de l'application
 document.addEventListener('DOMContentLoaded', () => {
     loadData().then(() => {
         applyUrlFilters();
         updateDisplay();
 
-        // Ajouter des écouteurs d’événements pour les filtres
+        // Ajouter des écouteurs d'événements pour les filtres
         document.getElementById('country-filter').addEventListener('change', updateDisplay);
         document.getElementById('status-filter').addEventListener('change', updateDisplay);
         document.getElementById('capacity-filter').addEventListener('input', () => {
