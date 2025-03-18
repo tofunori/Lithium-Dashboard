@@ -176,6 +176,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Charger les données
     await loadData();
     
+    // Mettre à jour les statistiques globales immédiatement
+    updateGlobalStats();
+    
     // Appliquer le thème
     applyTheme();
     
