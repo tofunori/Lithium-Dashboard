@@ -214,6 +214,32 @@
         .close:hover {
             color: #333;
         }
+        /* Style pour l'indicateur de synchronisation */
+        .sync-indicator {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+        }
+        .sync-indicator .dot {
+            width: 10px;
+            height: 10px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { background-color: #4CAF50; }
+            50% { background-color: #FFC107; }
+            100% { background-color: #4CAF50; }
+        }
     </style>
 </head>
 <body>
@@ -271,6 +297,7 @@
                         <option value="Planifié">Planifié</option>
                         <option value="Approuvé">Approuvé</option>
                         <option value="En suspens">En suspens</option>
+                        <option value="En pause">En pause</option>
                     </select>
                 </div>
                 <div>
@@ -475,6 +502,7 @@
                             <option value="Planifié">Planifié</option>
                             <option value="Approuvé">Approuvé</option>
                             <option value="En suspens">En suspens</option>
+                            <option value="En pause">En pause</option>
                         </select>
                     </div>
                     <div>
@@ -538,9 +566,17 @@
         </div>
     </div>
     
+    <!-- Indicateur de synchronisation -->
+    <div class="sync-indicator">
+        <div class="dot"></div>
+        <span>Synchronisation active</span>
+    </div>
+
     <!-- Scripts -->
+    <script src="js/data.js"></script>
     <script src="js/admin-uploader.js"></script>
     <script src="js/admin-table.js"></script>
+    <script src="js/sync.js"></script>
     <script>
         // Fonction pour activer un onglet
         function activateTab(tabName) {
@@ -604,6 +640,30 @@
                 activateTab('table');
                 console.log("Onglet tableau activé par défaut");
             }, 100);
+            
+            // Configurer le comportement de synchronisation
+            const syncIndicator = document.querySelector('.sync-indicator');
+            if (syncIndicator) {
+                const originalSaveData = window.saveData;
+                if (typeof originalSaveData === 'function') {
+                    // Surcharger la fonction saveData pour déclencher une animation de synchronisation
+                    window.saveData = function() {
+                        syncIndicator.classList.add('active');
+                        const result = originalSaveData.apply(this, arguments);
+                        
+                        if (typeof window.signalDataChange === 'function') {
+                            window.signalDataChange();
+                            console.log("Signal de changement de données émis");
+                        }
+                        
+                        setTimeout(() => {
+                            syncIndicator.classList.remove('active');
+                        }, 1000);
+                        
+                        return result;
+                    };
+                }
+            }
         });
     </script>
 </body>
