@@ -1,176 +1,163 @@
-/**
- * Script pour uploader facilement les données vers GitHub
- * 
- * Note: Nécessite une configuration GitHub OAuth token pour fonctionner
- * Vous devrez créer un token GitHub personnel avec les droits 'repo' pour l'utiliser
- * 
- * Ce script est simplifié et doit être utilisé avec précaution.
- * Dans un environnement de production, utilisez une approche plus sécurisée.
- */
-
-class GitHubUploader {
-    constructor() {
-        this.owner = 'tofunori'; // Remplacer par votre nom d'utilisateur GitHub
-        this.repo = 'Lithium-Dashboard'; // Remplacer par le nom de votre dépôt
-        this.path = 'data/refineries.json'; // Chemin du fichier à mettre à jour
-        this.branch = 'main'; // Branche à mettre à jour
-        
-        this.token = null; // Le token sera demandé lors de l'upload
-        this.currentSha = null; // SHA du fichier existant (nécessaire pour le mettre à jour)
-    }
+// Fonction pour uploader un fichier vers GitHub
+async function uploadToGitHub(token, content, message) {
+    // Configuration du dépôt
+    const owner = 'tofunori';
+    const repo = 'Lithium-Dashboard';
+    const path = 'data/refineries.json';
+    const branch = 'main';
     
-    // Configuration de l'uploader
-    async setup(token) {
-        this.token = token;
+    try {
+        // Récupérer le SHA du fichier existant (nécessaire pour la mise à jour)
+        const fileSha = await getFileSha(token, owner, repo, path, branch);
         
-        // Récupérer le SHA du fichier existant
-        try {
-            const response = await fetch(`https://api.github.com/repos/${this.owner}/${this.repo}/contents/${this.path}?ref=${this.branch}`, {
-                headers: {
-                    'Authorization': `token ${this.token}`,
-                    'Accept': 'application/vnd.github.v3+json'
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            this.currentSha = data.sha;
-            return true;
-        } catch (error) {
-            console.error('Erreur lors de la récupération du SHA:', error);
-            return false;
-        }
-    }
-    
-    // Mettre à jour le fichier sur GitHub
-    async updateFile(content, commitMessage) {
-        if (!this.token || !this.currentSha) {
-            return { success: false, message: 'Configuration incomplète. Veuillez configurer le token et récupérer le SHA.' };
+        // API GitHub pour mettre à jour le fichier
+        const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+        
+        const payload = {
+            message: message,
+            content: btoa(content), // Encoder en base64
+            sha: fileSha,
+            branch: branch
+        };
+        
+        // Faire la requête PUT pour mettre à jour le fichier
+        const response = await fetch(apiUrl, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github+json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Erreur GitHub: ${response.status} - ${errorData.message}`);
         }
         
-        try {
-            const payload = {
-                message: commitMessage,
-                content: btoa(unescape(encodeURIComponent(content))), // Encoder en base64
-                sha: this.currentSha,
-                branch: this.branch
-            };
-            
-            const response = await fetch(`https://api.github.com/repos/${this.owner}/${this.repo}/contents/${this.path}`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `token ${this.token}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/vnd.github.v3+json'
-                },
-                body: JSON.stringify(payload)
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`GitHub API error: ${errorData.message}`);
-            }
-            
-            const data = await response.json();
-            this.currentSha = data.content.sha; // Mettre à jour le SHA pour les futures mises à jour
-            
-            return { 
-                success: true, 
-                message: 'Fichier mis à jour avec succès!',
-                commitUrl: data.commit.html_url
-            };
-        } catch (error) {
-            return { 
-                success: false, 
-                message: `Erreur lors de la mise à jour: ${error.message}`
-            };
-        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Erreur lors de l\'upload vers GitHub:', error);
+        throw error;
     }
 }
 
-// Initialiser l'uploader une fois que le DOM est chargé
-document.addEventListener('DOMContentLoaded', function() {
-    // Créer l'uploader
-    const uploader = new GitHubUploader();
-    
-    // Ajouter un bouton d'upload à la page d'administration
-    const btnGroup = document.querySelector('.btn-group');
-    if (btnGroup) {
-        const uploadButton = document.createElement('button');
-        uploadButton.textContent = 'Uploader vers GitHub';
-        uploadButton.classList.add('github-upload');
-        uploadButton.style.backgroundColor = '#6e5494'; // Couleur GitHub
+// Récupérer le SHA d'un fichier sur GitHub
+async function getFileSha(token, owner, repo, path, branch) {
+    try {
+        const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
         
-        btnGroup.appendChild(uploadButton);
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github+json'
+            }
+        });
         
-        // Ajouter un gestionnaire d'événements pour l'upload
-        uploadButton.addEventListener('click', async function() {
-            const notification = document.getElementById('notification');
+        if (!response.ok) {
+            if (response.status === 404) {
+                // Le fichier n'existe pas encore
+                return null;
+            }
             
-            // Vérifier si les données JSON sont valides
-            try {
+            const errorData = await response.json();
+            throw new Error(`Erreur GitHub: ${response.status} - ${errorData.message}`);
+        }
+        
+        const data = await response.json();
+        return data.sha;
+    } catch (error) {
+        console.error('Erreur lors de la récupération du SHA:', error);
+        throw error;
+    }
+}
+
+// Initialiser les événements pour GitHub upload
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal GitHub upload
+    const githubUploadBtn = document.getElementById('github-upload');
+    if (githubUploadBtn) {
+        githubUploadBtn.addEventListener('click', async function() {
+            const token = document.getElementById('github-token').value.trim();
+            const message = document.getElementById('github-message').value.trim() || 'Mise à jour des données d\'installations';
+            
+            if (!token) {
+                alert('Veuillez entrer un token GitHub valide');
+                return;
+            }
+            
+            // Récupérer les données
+            let content;
+            
+            // Si nous sommes dans l'onglet tableau
+            if (document.querySelector('.tab[data-tab="table"]').classList.contains('active')) {
+                if (!refineryData) {
+                    alert('Aucune donnée à uploader. Veuillez charger les données d\'abord.');
+                    return;
+                }
+                
+                // Mettre à jour les données avec les modifications locales
+                refineryData.refineries = refineries;
+                content = JSON.stringify(refineryData, null, 2);
+            } 
+            // Si nous sommes dans l'onglet éditeur JSON
+            else if (document.querySelector('.tab[data-tab="editor"]').classList.contains('active')) {
                 const jsonEditor = document.getElementById('jsonEditor');
-                const jsonData = JSON.parse(jsonEditor.value);
                 
-                // Demander un token GitHub
-                const token = prompt("Veuillez entrer votre token GitHub avec accès repo. Ce token n'est pas sauvegardé.");
-                if (!token) {
-                    notification.textContent = 'Token GitHub requis pour l\'upload.';
-                    notification.className = 'notification error';
-                    notification.style.display = 'block';
+                if (!jsonEditor.value) {
+                    alert('Aucune donnée dans l\'éditeur JSON. Veuillez charger les données d\'abord.');
                     return;
                 }
                 
-                // Configuration
-                const setupSuccess = await uploader.setup(token);
-                if (!setupSuccess) {
-                    notification.textContent = 'Erreur lors de la configuration de l\'uploader GitHub.';
-                    notification.className = 'notification error';
-                    notification.style.display = 'block';
+                try {
+                    // Vérifier que c'est un JSON valide
+                    JSON.parse(jsonEditor.value);
+                    content = jsonEditor.value;
+                } catch (error) {
+                    alert(`JSON invalide: ${error.message}`);
                     return;
                 }
+            } else {
+                alert('Fonctionnalité disponible uniquement dans les onglets "Tableau" et "Éditeur JSON"');
+                return;
+            }
+            
+            // Confirmer l'upload
+            if (!confirm('Êtes-vous sûr de vouloir uploader ces données vers GitHub?')) {
+                return;
+            }
+            
+            try {
+                // Afficher un indicateur de chargement
+                const originalText = githubUploadBtn.textContent;
+                githubUploadBtn.textContent = 'Upload en cours...';
+                githubUploadBtn.disabled = true;
                 
-                // Message de commit
-                const commitMessage = prompt("Message de commit:", `Mise à jour des données (version ${jsonData.version})`);
-                if (!commitMessage) {
-                    notification.textContent = 'Message de commit requis.';
-                    notification.className = 'notification error';
-                    notification.style.display = 'block';
-                    return;
-                }
+                // Effectuer l'upload
+                const result = await uploadToGitHub(token, content, message);
                 
-                // Uploader le fichier
-                notification.textContent = 'Upload en cours...';
-                notification.className = 'notification';
-                notification.style.display = 'block';
+                // Réinitialiser le bouton
+                githubUploadBtn.textContent = originalText;
+                githubUploadBtn.disabled = false;
                 
-                const result = await uploader.updateFile(jsonEditor.value, commitMessage);
+                // Fermer la modal
+                document.getElementById('github-modal').style.display = 'none';
                 
-                if (result.success) {
-                    notification.textContent = `${result.message} Voir le commit: ${result.commitUrl}`;
-                    notification.className = 'notification success';
-                    
-                    // Ajouter un lien vers le commit
-                    const link = document.createElement('a');
-                    link.href = result.commitUrl;
-                    link.textContent = 'Voir le commit sur GitHub';
-                    link.target = '_blank';
-                    link.style.marginLeft = '10px';
-                    notification.appendChild(document.createElement('br'));
-                    notification.appendChild(link);
-                } else {
-                    notification.textContent = result.message;
-                    notification.className = 'notification error';
-                }
+                // Montrer un succès
+                alert(`Upload réussi! Commit: ${result.commit.sha.substring(0, 7)}`);
                 
-                notification.style.display = 'block';
+                // Effacer le token pour des raisons de sécurité
+                document.getElementById('github-token').value = '';
             } catch (error) {
-                notification.textContent = `Erreur: ${error.message}. Veuillez valider le JSON d'abord.`;
-                notification.className = 'notification error';
-                notification.style.display = 'block';
+                // Réinitialiser le bouton
+                githubUploadBtn.textContent = originalText;
+                githubUploadBtn.disabled = false;
+                
+                // Afficher l'erreur
+                alert(`Erreur lors de l'upload: ${error.message}`);
             }
         });
     }
