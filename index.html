@@ -88,14 +88,13 @@
             font-weight: bold;
         }
         
-        /* Bouton Admin dans l'en-tête */
+        /* Bouton Login dans l'en-tête */
         .admin-btn {
             background-color: #e74c3c;
             color: white;
             padding: 6px 12px;
             border: none;
             border-radius: 4px;
-            margin-left: 10px;
             cursor: pointer;
             font-size: 14px;
         }
@@ -103,14 +102,33 @@
         .admin-btn:hover {
             background-color: #c0392b;
         }
+        
+        /* En-tête avec flexbox pour positionner le bouton à droite */
+        .header-container {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .header-title {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>Dashboard des Installations de Recyclage de Batteries de Véhicules Électriques en Amérique du Nord</h1>
+        <header class="header-container">
+            <div class="header-top">
+                <h1 class="header-title">Dashboard des Installations de Recyclage de Batteries de Véhicules Électriques en Amérique du Nord</h1>
+                <button id="admin-btn" class="admin-btn">Login</button>
+            </div>
             <p>Dernière mise à jour: 18 mars 2025</p>
-            <button id="admin-btn" class="admin-btn">Administration</button>
         </header>
         
         <!-- Filtres -->
