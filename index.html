@@ -143,11 +143,6 @@
                 <span id="capacity-value">0</span>
             </div>
             
-            <div class="filter-group" style="margin-left: auto;">
-                <label>&nbsp;</label>
-                <button id="add-refinery-btn">Ajouter une installation</button>
-            </div>
-            
             <div class="filter-group">
                 <label>&nbsp;</label>
                 <button id="export-json-btn">Exporter (JSON)</button>
@@ -272,78 +267,6 @@
             </div>
         </div>
         
-        <!-- Modal pour ajouter/modifier une installation -->
-        <div id="refinery-modal" class="modal">
-            <div class="modal-content">
-                <button class="modal-close">&times;</button>
-                <h2 id="modal-title">Ajouter une installation</h2>
-                
-                <form id="refinery-form">
-                    <input type="hidden" id="refinery-id">
-                    
-                    <div class="form-group">
-                        <label for="refinery-name">Nom:</label>
-                        <input type="text" id="refinery-name" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="refinery-location">Emplacement:</label>
-                        <input type="text" id="refinery-location" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="refinery-country">Pays:</label>
-                        <select id="refinery-country" required>
-                            <option value="Canada">Canada</option>
-                            <option value="États-Unis">États-Unis</option>
-                            <option value="Mexique">Mexique</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="refinery-coordinates">Coordonnées (latitude, longitude):</label>
-                        <input type="text" id="refinery-coordinates" placeholder="ex: 49.12345, -123.45678">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="refinery-status">Statut:</label>
-                        <select id="refinery-status" required>
-                            <option value="Opérationnel">Opérationnel</option>
-                            <option value="En construction">En construction</option>
-                            <option value="Planifié">Planifié</option>
-                            <option value="Approuvé">Approuvé</option>
-                            <option value="En suspens">En suspens</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="refinery-production">Capacité:</label>
-                        <input type="text" id="refinery-production" placeholder="ex: 10000">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="refinery-processing">Technologie:</label>
-                        <input type="text" id="refinery-processing" placeholder="ex: Hydrométallurgie">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="refinery-notes">Notes:</label>
-                        <textarea id="refinery-notes" rows="3"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="refinery-website">Site web:</label>
-                        <input type="url" id="refinery-website" placeholder="ex: https://example.com">
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="button" id="cancel-button">Annuler</button>
-                        <button type="submit" id="save-button">Enregistrer</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
         <!-- Modal de partage -->
         <div id="share-modal" class="modal">
             <div class="modal-content">
