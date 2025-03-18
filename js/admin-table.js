@@ -34,12 +34,21 @@ async function loadRefineryData() {
 function displayRefineryTable() {
     // Vider le tableau
     const tableBody = document.getElementById('refineries-table-body');
+    if (!tableBody) {
+        console.error("Élément 'refineries-table-body' non trouvé!");
+        return;
+    }
     tableBody.innerHTML = '';
     
     // Filtrer les données si nécessaire
-    const countryFilter = document.getElementById('filter-country').value;
-    const statusFilter = document.getElementById('filter-status').value;
-    const searchFilter = document.getElementById('filter-search').value.toLowerCase();
+    const countryFilter = document.getElementById('filter-country') ? document.getElementById('filter-country').value : 'all';
+    const statusFilter = document.getElementById('filter-status') ? document.getElementById('filter-status').value : 'all';
+    const searchFilter = document.getElementById('filter-search') ? document.getElementById('filter-search').value.toLowerCase() : '';
+    
+    if (!refineries) {
+        console.error("Aucune donnée d'installation disponible");
+        return;
+    }
     
     const filteredData = refineries.filter(refinery => {
         // Filtre par pays
@@ -83,8 +92,8 @@ function displayRefineryTable() {
             <td>${refinery.production}</td>
             <td>${refinery.processing}</td>
             <td class="action-buttons">
-                <button onclick="editRefinery(${refinery.id})" class="edit-btn">Modifier</button>
-                <button onclick="deleteRefinery(${refinery.id})" class="danger">Supprimer</button>
+                <button onclick="window.editRefinery(${refinery.id})" class="edit-btn">Modifier</button>
+                <button onclick="window.deleteRefinery(${refinery.id})" class="danger">Supprimer</button>
             </td>
         `;
         
@@ -94,6 +103,10 @@ function displayRefineryTable() {
 
 // Afficher une notification
 function showNotification(element, message, type) {
+    if (!element) {
+        console.error("Élément de notification non trouvé!");
+        return;
+    }
     element.textContent = message;
     element.className = `notification ${type}`;
     element.style.display = 'block';
@@ -345,48 +358,89 @@ function exportTableData() {
 // Initialiser les écouteurs d'événements pour le tableau
 function initTableEvents() {
     // Filtres
-    document.getElementById('filter-country').addEventListener('change', displayRefineryTable);
-    document.getElementById('filter-status').addEventListener('change', displayRefineryTable);
-    document.getElementById('filter-search').addEventListener('input', displayRefineryTable);
+    const filterCountry = document.getElementById('filter-country');
+    if (filterCountry) filterCountry.addEventListener('change', displayRefineryTable);
+    
+    const filterStatus = document.getElementById('filter-status');
+    if (filterStatus) filterStatus.addEventListener('change', displayRefineryTable);
+    
+    const filterSearch = document.getElementById('filter-search');
+    if (filterSearch) filterSearch.addEventListener('input', displayRefineryTable);
     
     // Boutons d'action
-    document.getElementById('add-new-btn').addEventListener('click', addNewRefinery);
-    document.getElementById('refresh-table-btn').addEventListener('click', loadRefineryData);
-    document.getElementById('save-all-changes-btn').addEventListener('click', saveAllChanges);
-    document.getElementById('increment-version-btn').addEventListener('click', incrementVersion);
-    document.getElementById('export-table-btn').addEventListener('click', exportTableData);
+    const addNewBtn = document.getElementById('add-new-btn');
+    if (addNewBtn) addNewBtn.addEventListener('click', addNewRefinery);
+    
+    const refreshTableBtn = document.getElementById('refresh-table-btn');
+    if (refreshTableBtn) refreshTableBtn.addEventListener('click', loadRefineryData);
+    
+    const saveAllChangesBtn = document.getElementById('save-all-changes-btn');
+    if (saveAllChangesBtn) saveAllChangesBtn.addEventListener('click', saveAllChanges);
+    
+    const incrementVersionBtn = document.getElementById('increment-version-btn');
+    if (incrementVersionBtn) incrementVersionBtn.addEventListener('click', incrementVersion);
+    
+    const exportTableBtn = document.getElementById('export-table-btn');
+    if (exportTableBtn) exportTableBtn.addEventListener('click', exportTableData);
     
     // Modal d'édition
-    document.getElementById('edit-form').addEventListener('submit', saveRefineryChanges);
-    document.getElementById('edit-cancel').addEventListener('click', () => {
+    const editForm = document.getElementById('edit-form');
+    if (editForm) editForm.addEventListener('submit', saveRefineryChanges);
+    
+    const editCancel = document.getElementById('edit-cancel');
+    if (editCancel) editCancel.addEventListener('click', () => {
         document.getElementById('edit-modal').style.display = 'none';
     });
-    document.getElementById('edit-modal-close').addEventListener('click', () => {
+    
+    const editModalClose = document.getElementById('edit-modal-close');
+    if (editModalClose) editModalClose.addEventListener('click', () => {
         document.getElementById('edit-modal').style.display = 'none';
     });
     
     // Modal de suppression
-    document.getElementById('delete-confirm').addEventListener('click', confirmDelete);
-    document.getElementById('delete-cancel').addEventListener('click', () => {
+    const deleteConfirm = document.getElementById('delete-confirm');
+    if (deleteConfirm) deleteConfirm.addEventListener('click', confirmDelete);
+    
+    const deleteCancel = document.getElementById('delete-cancel');
+    if (deleteCancel) deleteCancel.addEventListener('click', () => {
         document.getElementById('delete-modal').style.display = 'none';
     });
     
     // Fermer les modals en cliquant à l'extérieur
     window.addEventListener('click', (e) => {
-        if (e.target === document.getElementById('edit-modal')) {
-            document.getElementById('edit-modal').style.display = 'none';
+        const editModal = document.getElementById('edit-modal');
+        if (e.target === editModal) {
+            editModal.style.display = 'none';
         }
-        if (e.target === document.getElementById('delete-modal')) {
-            document.getElementById('delete-modal').style.display = 'none';
+        
+        const deleteModal = document.getElementById('delete-modal');
+        if (e.target === deleteModal) {
+            deleteModal.style.display = 'none';
         }
-        if (e.target === document.getElementById('github-modal')) {
-            document.getElementById('github-modal').style.display = 'none';
+        
+        const githubModal = document.getElementById('github-modal');
+        if (e.target === githubModal) {
+            githubModal.style.display = 'none';
         }
     });
 }
 
+// Rendre les fonctions disponibles globalement
+window.editRefinery = editRefinery;
+window.deleteRefinery = deleteRefinery;
+window.addNewRefinery = addNewRefinery;
+window.confirmDelete = confirmDelete;
+window.saveRefineryChanges = saveRefineryChanges;
+window.saveAllChanges = saveAllChanges;
+window.incrementVersion = incrementVersion;
+window.exportTableData = exportTableData;
+window.loadRefineryData = loadRefineryData;
+window.displayRefineryTable = displayRefineryTable;
+window.showNotification = showNotification;
+
 // Initialiser dès que le DOM est chargé
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("Initialisation du tableau des installations...");
     initTableEvents();
     loadRefineryData();
 });
