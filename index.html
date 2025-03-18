@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Recyclage de Batteries VE</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <!-- Chart.js -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css" />
+    
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Dashboard des Installations de Recyclage de Batteries de Véhicules Électriques en Amérique du Nord</h1>
+            <p>Dernière mise à jour: 18 mars 2025</p>
+        </header>
+        
+        <!-- Filtres -->
+        <div class="filters">
+            <div class="filter-group">
+                <label for="country-filter">Pays:</label>
+                <select id="country-filter">
+                    <option value="all">Tous les pays</option>
+                    <option value="Canada">Canada</option>
+                    <option value="États-Unis">États-Unis</option>
+                    <option value="Mexique">Mexique</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="status-filter">Statut:</label>
+                <select id="status-filter">
+                    <option value="all">Tous les statuts</option>
+                    <option value="Opérationnel">Opérationnel</option>
+                    <option value="En construction">En construction</option>
+                    <option value="Planifié">Planifié</option>
+                    <option value="Approuvé">Approuvé</option>
+                    <option value="En suspens">En suspens</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="capacity-filter">Capacité minimale (tpa):</label>
+                <input type="range" id="capacity-filter" min="0" max="10000" step="500" value="0">
+                <span id="capacity-value">0</span>
+            </div>
+            
+            <div class="filter-group" style="margin-left: auto;">
+                <label>&nbsp;</label>
+                <button id="add-refinery-btn">Ajouter une installation</button>
+            </div>
+            
+            <div class="filter-group">
+                <label>&nbsp;</label>
+                <button id="export-json-btn">Exporter (JSON)</button>
+            </div>
+
+            <div class="filter-group">
+                <label>&nbsp;</label>
+                <button id="theme-toggle-btn">Mode sombre</button>
+            </div>
+        </div>
+        
+        <!-- Statistiques -->
+        <div class="stats-container">
+            <div class="stat-card blue-bg">
+                <h3>Total des installations</h3>
+                <p id="total-refineries">13</p>
+            </div>
+            <div class="stat-card green-bg">
+                <h3>Opérationnelles</h3>
+                <p id="operational-refineries">10</p>
+            </div>
+            <div class="stat-card yellow-bg">
+                <h3>En construction</h3>
+                <p id="construction-refineries">2</p>
+            </div>
+            <div class="stat-card purple-bg">
+                <h3>Capacité totale (tpa)</h3>
+                <p id="total-capacity">18300</p>
+            </div>
+        </div>
+        
+        <!-- Carte Leaflet -->
+        <div class="card">
+            <h2>Carte des Installations de Recyclage de Batteries</h2>
+            <div id="map"></div>
+        </div>
+        
+        <!-- Visualisation par pays -->
+        <div class="card">
+            <h2>Vue des Installations de Recyclage par Pays</h2>
+            
+            <div class="countries-container">
+                <!-- Dynamiquement rempli par JavaScript -->
+            </div>
+            
+            <!-- Légende -->
+            <div style="margin-top: 20px;">
+                <strong>Statut:</strong>
+                <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px;">
+                    <div class="legend-item">
+                        <span class="status-dot status-operational"></span>
+                        <span>Opérationnel</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="status-dot status-construction"></span>
+                        <span>En construction</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="status-dot status-planned"></span>
+                        <span>Planifié/Approuvé</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="status-dot status-suspended"></span>
+                        <span>En suspens</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Détails de l'installation -->
+            <div id="refinery-details" class="refinery-details">
+                <!-- Dynamiquement rempli par JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Graphiques -->
+        <div class="chart-container">
+            <!-- Graphique par pays -->
+            <div class="chart">
+                <h3>Distribution par pays</h3>
+                <div class="chart-content">
+                    <canvas id="country-chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Graphique par statut -->
+            <div class="chart">
+                <h3>Distribution par statut</h3>
+                <div class="chart-content">
+                    <canvas id="status-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Graphique de capacité -->
+        <div class="card">
+            <h3>Capacité de recyclage (tpa)</h3>
+            <div class="chart-container">
+                <canvas id="capacity-chart" height="250"></canvas>
+            </div>
+        </div>
+        
+        <!-- Tableau -->
+        <div class="card">
+            <h2>Tableau des Installations de Recyclage</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Emplacement</th>
+                            <th>Statut</th>
+                            <th>Capacité (tpa)</th>
+                            <th>Technologie</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="refineries-table-body">
+                        <!-- Dynamiquement rempli par JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Modal pour ajouter/modifier une installation -->
+        <div id="refinery-modal" class="modal">
+            <div class="modal-content">
+                <button class="modal-close">&times;</button>
+                <h2 id="modal-title">Ajouter une installation</h2>
+                
+                <form id="refinery-form">
+                    <input type="hidden" id="refinery-id">
+                    
+                    <div class="form-group">
+                        <label for="refinery-name">Nom:</label>
+                        <input type="text" id="refinery-name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="refinery-location">Emplacement:</label>
+                        <input type="text" id="refinery-location" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="refinery-country">Pays:</label>
+                        <select id="refinery-country" required>
+                            <option value="Canada">Canada</option>
+                            <option value="États-Unis">États-Unis</option>
+                            <option value="Mexique">Mexique</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="refinery-coordinates">Coordonnées (latitude, longitude):</label>
+                        <input type="text" id="refinery-coordinates" placeholder="ex: 49.12345, -123.45678">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="refinery-status">Statut:</label>
+                        <select id="refinery-status" required>
+                            <option value="Opérationnel">Opérationnel</option>
+                            <option value="En construction">En construction</option>
+                            <option value="Planifié">Planifié</option>
+                            <option value="Approuvé">Approuvé</option>
+                            <option value="En suspens">En suspens</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="refinery-production">Capacité (tpa):</label>
+                        <input type="text" id="refinery-production" placeholder="ex: 10000">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="refinery-processing">Technologie:</label>
+                        <input type="text" id="refinery-processing" placeholder="ex: Hydrométallurgie">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="refinery-notes">Notes:</label>
+                        <textarea id="refinery-notes" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="refinery-website">Site web:</label>
+                        <input type="url" id="refinery-website" placeholder="ex: https://example.com">
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" id="cancel-button">Annuler</button>
+                        <button type="submit" id="save-button">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de partage -->
+        <div id="share-modal" class="modal">
+            <div class="modal-content">
+                <button class="modal-close">&times;</button>
+                <h2>Partager ce tableau de bord</h2>
+                <div class="form-group">
+                    <label for="share-link">Lien avec les filtres appliqués:</label>
+                    <input type="text" id="share-link" readonly>
+                </div>
+                <button id="copy-link-btn" class="btn">Copier le lien</button>
+                <div class="social-share">
+                    <button id="share-twitter" class="share-btn">Twitter</button>
+                    <button id="share-linkedin" class="share-btn">LinkedIn</button>
+                    <button id="share-email" class="share-btn">Email</button>
+                </div>
+            </div>
+        </div>
+        
+        <footer style="margin-top: 30px; text-align: center; color: #666;">
+            <p>Dashboard des Installations de Recyclage de Batteries de Véhicules Électriques en Amérique du Nord - Mis à jour le 18 mars 2025</p>
+            <p><a href="https://github.com/tofunori/battery-recycling-dashboard" target="_blank">Code source sur GitHub</a></p>
+        </footer>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <!-- Nos scripts -->
+    <script src="js/data.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/table.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
