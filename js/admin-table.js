@@ -1,292 +1,275 @@
-// Script pour la gestion des installations via une interface de type tableur
-document.addEventListener('DOMContentLoaded', function() {
-    // Variables globales
-    let currentData = null;
-    let installationsTable = document.getElementById('installations-table');
-    let addRowBtn = document.getElementById('add-row-btn');
-    let saveTableBtn = document.getElementById('save-table-btn');
-    let refreshTableBtn = document.getElementById('refresh-table-btn');
-    let tableNotification = document.getElementById('table-notification');
-    let tableVersionInfo = document.getElementById('table-version-info');
-    let incrementVersionBtn = document.getElementById('increment-version-btn');
+// Variables globales
+let refineryData = null;
+let refineries = [];
+let currentId = null;
+
+// Charger les données des installations
+async function loadRefineryData() {
+    try {
+        const response = await fetch('data/refineries.json');
+        if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        
+        refineryData = await response.json();
+        refineries = refineryData.refineries;
+        
+        // Mettre à jour les informations de version
+        const versionText = `Version actuelle: ${refineryData.version || 'non définie'}`;
+        document.getElementById('tableVersionInfo').textContent = versionText;
+        
+        // Afficher le tableau des installations
+        displayRefineryTable();
+        
+        showNotification(document.getElementById('table-notification'), 'Données chargées avec succès!', 'success');
+        return true;
+    } catch (error) {
+        showNotification(document.getElementById('table-notification'), `Erreur lors du chargement des données: ${error.message}`, 'error');
+        console.error('Erreur:', error);
+        return false;
+    }
+}
+
+// Afficher le tableau des installations
+function displayRefineryTable() {
+    // Vider le tableau
+    const tableBody = document.getElementById('refineries-table-body');
+    tableBody.innerHTML = '';
     
-    // Charger les données initiales
-    loadInstallationsData();
+    // Filtrer les données si nécessaire
+    const countryFilter = document.getElementById('filter-country').value;
+    const statusFilter = document.getElementById('filter-status').value;
+    const searchFilter = document.getElementById('filter-search').value.toLowerCase();
     
-    // Gestionnaires d'événements
-    if (addRowBtn) addRowBtn.addEventListener('click', addNewRow);
-    if (saveTableBtn) saveTableBtn.addEventListener('click', saveTableData);
-    if (refreshTableBtn) refreshTableBtn.addEventListener('click', loadInstallationsData);
-    if (incrementVersionBtn) incrementVersionBtn.addEventListener('click', incrementVersion);
+    const filteredData = refineries.filter(refinery => {
+        // Filtre par pays
+        if (countryFilter !== 'all' && refinery.country !== countryFilter) {
+            return false;
+        }
+        
+        // Filtre par statut
+        if (statusFilter !== 'all' && refinery.status !== statusFilter) {
+            return false;
+        }
+        
+        // Filtre par recherche
+        if (searchFilter) {
+            const searchFields = [
+                refinery.name,
+                refinery.location,
+                refinery.country,
+                refinery.status,
+                refinery.production,
+                refinery.processing
+            ].map(field => String(field).toLowerCase());
+            
+            return searchFields.some(field => field.includes(searchFilter));
+        }
+        
+        return true;
+    });
     
-    // Fonction pour charger les données
-    async function loadInstallationsData() {
-        try {
-            const response = await fetch('data/refineries.json');
-            if (!response.ok) {
-                throw new Error(`Erreur HTTP: ${response.status}`);
-            }
-            
-            currentData = await response.json();
-            renderTable();
-            
-            // Mettre à jour l'info de version
-            if (tableVersionInfo) {
-                tableVersionInfo.textContent = `Version actuelle: ${currentData.version || 'non définie'}`;
-            }
-            
-            showNotification('Données chargées avec succès!', 'success');
-        } catch (error) {
-            showNotification(`Erreur lors du chargement des données: ${error.message}`, 'error');
-            console.error('Erreur:', error);
+    // Afficher les données filtrées
+    filteredData.forEach(refinery => {
+        const row = document.createElement('tr');
+        
+        // Créer les cellules
+        row.innerHTML = `
+            <td>${refinery.id}</td>
+            <td>${refinery.name}</td>
+            <td>${refinery.location}</td>
+            <td>${refinery.country}</td>
+            <td>${refinery.status}</td>
+            <td>${refinery.production}</td>
+            <td>${refinery.processing}</td>
+            <td class="action-buttons">
+                <button onclick="editRefinery(${refinery.id})" class="edit-btn">Modifier</button>
+                <button onclick="deleteRefinery(${refinery.id})" class="danger">Supprimer</button>
+            </td>
+        `;
+        
+        tableBody.appendChild(row);
+    });
+}
+
+// Afficher une notification
+function showNotification(element, message, type) {
+    element.textContent = message;
+    element.className = `notification ${type}`;
+    element.style.display = 'block';
+    
+    // Masquer la notification après 5 secondes
+    setTimeout(() => {
+        element.style.display = 'none';
+    }, 5000);
+}
+
+// Ajouter une nouvelle installation
+function addNewRefinery() {
+    // Ouvrir la modal en mode ajout
+    document.getElementById('edit-modal-title').textContent = 'Ajouter une installation';
+    document.getElementById('edit-id').value = '';
+    document.getElementById('edit-name').value = '';
+    document.getElementById('edit-location').value = '';
+    document.getElementById('edit-country').value = 'Canada';
+    document.getElementById('edit-coordinates').value = '';
+    document.getElementById('edit-status').value = 'Planifié';
+    document.getElementById('edit-production').value = '';
+    document.getElementById('edit-processing').value = '';
+    document.getElementById('edit-notes').value = '';
+    document.getElementById('edit-website').value = '';
+    
+    document.getElementById('edit-modal').style.display = 'block';
+}
+
+// Modifier une installation existante
+function editRefinery(id) {
+    currentId = id;
+    const refinery = refineries.find(r => r.id === id);
+    
+    if (!refinery) {
+        showNotification(document.getElementById('table-notification'), 'Installation non trouvée', 'error');
+        return;
+    }
+    
+    // Remplir le formulaire avec les données de l'installation
+    document.getElementById('edit-modal-title').textContent = 'Modifier une installation';
+    document.getElementById('edit-id').value = refinery.id;
+    document.getElementById('edit-name').value = refinery.name;
+    document.getElementById('edit-location').value = refinery.location;
+    document.getElementById('edit-country').value = refinery.country;
+    document.getElementById('edit-coordinates').value = refinery.coordinates ? refinery.coordinates.join(', ') : '';
+    document.getElementById('edit-status').value = refinery.status;
+    document.getElementById('edit-production').value = refinery.production;
+    document.getElementById('edit-processing').value = refinery.processing;
+    document.getElementById('edit-notes').value = refinery.notes || '';
+    document.getElementById('edit-website').value = refinery.website || '';
+    
+    document.getElementById('edit-modal').style.display = 'block';
+}
+
+// Demander confirmation pour supprimer une installation
+function deleteRefinery(id) {
+    currentId = id;
+    const refinery = refineries.find(r => r.id === id);
+    
+    if (!refinery) {
+        showNotification(document.getElementById('table-notification'), 'Installation non trouvée', 'error');
+        return;
+    }
+    
+    // Afficher le nom de l'installation dans la modal de confirmation
+    document.getElementById('delete-refinery-name').textContent = refinery.name;
+    document.getElementById('delete-id').value = id;
+    
+    // Afficher la modal de confirmation
+    document.getElementById('delete-modal').style.display = 'block';
+}
+
+// Confirmer la suppression d'une installation
+function confirmDelete() {
+    const id = parseInt(document.getElementById('delete-id').value);
+    
+    // Trouver l'index de l'installation à supprimer
+    const index = refineries.findIndex(r => r.id === id);
+    
+    if (index === -1) {
+        showNotification(document.getElementById('table-notification'), 'Installation non trouvée', 'error');
+        return;
+    }
+    
+    // Supprimer l'installation
+    refineries.splice(index, 1);
+    
+    // Mettre à jour le tableau
+    displayRefineryTable();
+    
+    // Fermer la modal
+    document.getElementById('delete-modal').style.display = 'none';
+    
+    showNotification(document.getElementById('table-notification'), 'Installation supprimée avec succès', 'success');
+}
+
+// Sauvegarder les modifications d'une installation
+function saveRefineryChanges(e) {
+    e.preventDefault();
+    
+    const id = document.getElementById('edit-id').value;
+    const name = document.getElementById('edit-name').value;
+    const location = document.getElementById('edit-location').value;
+    const country = document.getElementById('edit-country').value;
+    const coordinatesStr = document.getElementById('edit-coordinates').value;
+    const status = document.getElementById('edit-status').value;
+    const production = document.getElementById('edit-production').value || 'N/A';
+    const processing = document.getElementById('edit-processing').value || 'N/A';
+    const notes = document.getElementById('edit-notes').value;
+    const website = document.getElementById('edit-website').value || '#';
+    
+    // Traiter les coordonnées
+    let coordinates = [0, 0]; // Coordonnées par défaut
+    if (coordinatesStr) {
+        const parts = coordinatesStr.split(',').map(part => parseFloat(part.trim()));
+        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+            coordinates = parts;
         }
     }
     
-    // Fonction pour afficher une notification
-    function showNotification(message, type) {
-        if (!tableNotification) return;
-        
-        tableNotification.textContent = message;
-        tableNotification.className = `notification ${type}`;
-        tableNotification.style.display = 'block';
-        
-        // Masquer la notification après 5 secondes
-        setTimeout(() => {
-            tableNotification.style.display = 'none';
-        }, 5000);
-    }
-    
-    // Fonction pour rendre le tableau
-    function renderTable() {
-        if (!installationsTable || !currentData || !currentData.refineries) return;
-        
-        // Vider le tableau existant
-        installationsTable.innerHTML = '';
-        
-        // Créer l'en-tête du tableau
-        const thead = document.createElement('thead');
-        const headerRow = document.createElement('tr');
-        
-        const headers = [
-            'ID', 'Nom', 'Emplacement', 'Pays', 'Coordonnées', 
-            'Statut', 'Production', 'Technologie', 'Site web', 'Notes', 'Actions'
-        ];
-        
-        headers.forEach(header => {
-            const th = document.createElement('th');
-            th.textContent = header;
-            headerRow.appendChild(th);
-        });
-        
-        thead.appendChild(headerRow);
-        installationsTable.appendChild(thead);
-        
-        // Créer le corps du tableau
-        const tbody = document.createElement('tbody');
-        
-        // Trier les installations par ID
-        const sortedRefineries = [...currentData.refineries].sort((a, b) => a.id - b.id);
-        
-        sortedRefineries.forEach(refinery => {
-            const tr = createTableRow(refinery);
-            tbody.appendChild(tr);
-        });
-        
-        installationsTable.appendChild(tbody);
-    }
-    
-    // Fonction pour créer une ligne de tableau
-    function createTableRow(refinery) {
-        const tr = document.createElement('tr');
-        tr.dataset.id = refinery.id;
-        
-        // Cellule ID
-        const tdId = document.createElement('td');
-        tdId.textContent = refinery.id;
-        tdId.className = 'read-only';
-        tr.appendChild(tdId);
-        
-        // Cellule Nom
-        const tdName = document.createElement('td');
-        tdName.contentEditable = 'true';
-        tdName.textContent = refinery.name || '';
-        tdName.dataset.field = 'name';
-        tr.appendChild(tdName);
-        
-        // Cellule Emplacement
-        const tdLocation = document.createElement('td');
-        tdLocation.contentEditable = 'true';
-        tdLocation.textContent = refinery.location || '';
-        tdLocation.dataset.field = 'location';
-        tr.appendChild(tdLocation);
-        
-        // Cellule Pays
-        const tdCountry = document.createElement('td');
-        const countrySelect = document.createElement('select');
-        countrySelect.dataset.field = 'country';
-        
-        ['Canada', 'États-Unis', 'Mexique'].forEach(country => {
-            const option = document.createElement('option');
-            option.value = country;
-            option.textContent = country;
-            if (refinery.country === country) {
-                option.selected = true;
-            }
-            countrySelect.appendChild(option);
-        });
-        
-        tdCountry.appendChild(countrySelect);
-        tr.appendChild(tdCountry);
-        
-        // Cellule Coordonnées
-        const tdCoordinates = document.createElement('td');
-        tdCoordinates.contentEditable = 'true';
-        tdCoordinates.textContent = refinery.coordinates ? 
-            `${refinery.coordinates[0]}, ${refinery.coordinates[1]}` : '';
-        tdCoordinates.dataset.field = 'coordinates';
-        tr.appendChild(tdCoordinates);
-        
-        // Cellule Statut
-        const tdStatus = document.createElement('td');
-        const statusSelect = document.createElement('select');
-        statusSelect.dataset.field = 'status';
-        
-        ['Opérationnel', 'En construction', 'Planifié', 'Approuvé', 'En suspens'].forEach(status => {
-            const option = document.createElement('option');
-            option.value = status;
-            option.textContent = status;
-            if (refinery.status === status) {
-                option.selected = true;
-            }
-            statusSelect.appendChild(option);
-        });
-        
-        tdStatus.appendChild(statusSelect);
-        tr.appendChild(tdStatus);
-        
-        // Cellule Production
-        const tdProduction = document.createElement('td');
-        tdProduction.contentEditable = 'true';
-        tdProduction.textContent = refinery.production || '';
-        tdProduction.dataset.field = 'production';
-        tr.appendChild(tdProduction);
-        
-        // Cellule Technologie
-        const tdProcessing = document.createElement('td');
-        tdProcessing.contentEditable = 'true';
-        tdProcessing.textContent = refinery.processing || '';
-        tdProcessing.dataset.field = 'processing';
-        tr.appendChild(tdProcessing);
-        
-        // Cellule Site web
-        const tdWebsite = document.createElement('td');
-        tdWebsite.contentEditable = 'true';
-        tdWebsite.textContent = refinery.website || '';
-        tdWebsite.dataset.field = 'website';
-        tr.appendChild(tdWebsite);
-        
-        // Cellule Notes
-        const tdNotes = document.createElement('td');
-        tdNotes.contentEditable = 'true';
-        tdNotes.textContent = refinery.notes || '';
-        tdNotes.dataset.field = 'notes';
-        tr.appendChild(tdNotes);
-        
-        // Cellule Actions
-        const tdActions = document.createElement('td');
-        tdActions.className = 'actions';
-        
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'danger';
-        deleteBtn.textContent = 'Supprimer';
-        deleteBtn.addEventListener('click', function() {
-            if (confirm('Êtes-vous sûr de vouloir supprimer cette installation ?')) {
-                tr.remove();
-            }
-        });
-        
-        tdActions.appendChild(deleteBtn);
-        tr.appendChild(tdActions);
-        
-        return tr;
-    }
-    
-    // Fonction pour ajouter une nouvelle ligne
-    function addNewRow() {
-        if (!installationsTable) return;
-        
-        const tbody = installationsTable.querySelector('tbody');
-        if (!tbody) return;
-        
-        // Calculer le prochain ID
-        const maxId = Math.max(...currentData.refineries.map(r => r.id), 0);
-        const newId = maxId + 1;
-        
-        // Créer une nouvelle installation vide
-        const newRefinery = {
-            id: newId,
-            name: '',
-            location: '',
-            country: 'Canada',
-            coordinates: [0, 0],
-            status: 'Planifié',
-            production: '',
-            processing: '',
-            website: '',
-            notes: ''
-        };
-        
-        // Ajouter la ligne au tableau
-        const tr = createTableRow(newRefinery);
-        tbody.appendChild(tr);
-        
-        // Mettre le focus sur le champ nom
-        const nameCell = tr.querySelector('[data-field="name"]');
-        if (nameCell) {
-            nameCell.focus();
-        }
-    }
-    
-    // Fonction pour sauvegarder les données
-    function saveTableData() {
-        if (!installationsTable || !currentData) return;
-        
-        // Recueillir toutes les installations du tableau
-        const rows = installationsTable.querySelectorAll('tbody tr');
-        const updatedRefineries = [];
-        
-        rows.forEach(row => {
-            const id = parseInt(row.dataset.id);
-            
-            const refinery = {
-                id: id,
-                name: row.querySelector('[data-field="name"]').textContent,
-                location: row.querySelector('[data-field="location"]').textContent,
-                country: row.querySelector('[data-field="country"]').value,
-                status: row.querySelector('[data-field="status"]').value,
-                production: row.querySelector('[data-field="production"]').textContent,
-                processing: row.querySelector('[data-field="processing"]').textContent,
-                website: row.querySelector('[data-field="website"]').textContent,
-                notes: row.querySelector('[data-field="notes"]').textContent
+    if (id) {
+        // Modification
+        const index = refineries.findIndex(r => r.id === parseInt(id));
+        if (index !== -1) {
+            refineries[index] = {
+                ...refineries[index],
+                name,
+                location,
+                country,
+                coordinates,
+                status,
+                production,
+                processing,
+                notes,
+                website
             };
-            
-            // Traiter les coordonnées
-            const coordinatesText = row.querySelector('[data-field="coordinates"]').textContent;
-            if (coordinatesText) {
-                const parts = coordinatesText.split(',').map(part => parseFloat(part.trim()));
-                if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-                    refinery.coordinates = [parts[0], parts[1]];
-                }
-            }
-            
-            updatedRefineries.push(refinery);
+            showNotification(document.getElementById('table-notification'), 'Installation modifiée avec succès', 'success');
+        }
+    } else {
+        // Ajout
+        const newId = Math.max(...refineries.map(r => r.id), 0) + 1;
+        refineries.push({
+            id: newId,
+            name,
+            location,
+            country,
+            coordinates,
+            status,
+            production,
+            processing,
+            notes,
+            website
         });
-        
+        showNotification(document.getElementById('table-notification'), 'Installation ajoutée avec succès', 'success');
+    }
+    
+    // Mettre à jour le tableau et fermer la modal
+    displayRefineryTable();
+    document.getElementById('edit-modal').style.display = 'none';
+}
+
+// Sauvegarder toutes les modifications
+async function saveAllChanges() {
+    if (!refineryData) {
+        showNotification(document.getElementById('table-notification'), 'Aucune donnée à sauvegarder', 'error');
+        return;
+    }
+    
+    try {
         // Mettre à jour les données
-        currentData.refineries = updatedRefineries;
+        refineryData.refineries = refineries;
         
-        // Télécharger le fichier JSON
-        const dataStr = JSON.stringify(currentData, null, 2);
+        // Convertir en JSON
+        const dataStr = JSON.stringify(refineryData, null, 2);
+        
+        // Télécharger le fichier
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
         const url = URL.createObjectURL(dataBlob);
         const link = document.createElement('a');
@@ -294,18 +277,25 @@ document.addEventListener('DOMContentLoaded', function() {
         link.download = 'refineries.json';
         link.click();
         
-        showNotification('Données sauvegardées avec succès!', 'success');
+        showNotification(document.getElementById('table-notification'), 'Données sauvegardées avec succès!', 'success');
+    } catch (error) {
+        showNotification(document.getElementById('table-notification'), `Erreur lors de la sauvegarde: ${error.message}`, 'error');
+    }
+}
+
+// Incrémenter la version
+function incrementVersion() {
+    if (!refineryData) {
+        showNotification(document.getElementById('table-notification'), 'Aucune donnée à mettre à jour', 'error');
+        return;
     }
     
-    // Fonction pour incrémenter la version
-    function incrementVersion() {
-        if (!currentData) return;
-        
+    try {
         const currentDate = new Date();
         const formattedDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
         
         // Vérifier si la date est la même que celle de la version actuelle
-        const currentVersion = currentData.version || '';
+        const currentVersion = refineryData.version || '';
         let newVersion;
         
         if (currentVersion.startsWith(formattedDate)) {
@@ -318,14 +308,85 @@ document.addEventListener('DOMContentLoaded', function() {
             newVersion = `${formattedDate}-v1`;
         }
         
-        // Mettre à jour la version
-        currentData.version = newVersion;
+        refineryData.version = newVersion;
+        document.getElementById('tableVersionInfo').textContent = `Version actuelle: ${newVersion}`;
         
-        // Mettre à jour l'info de version
-        if (tableVersionInfo) {
-            tableVersionInfo.textContent = `Version actuelle: ${newVersion}`;
-        }
-        
-        showNotification(`Version incrémentée à ${newVersion}`, 'success');
+        showNotification(document.getElementById('table-notification'), `Version incrémentée à ${newVersion}`, 'success');
+    } catch (error) {
+        showNotification(document.getElementById('table-notification'), `Erreur lors de l'incrémentation de la version: ${error.message}`, 'error');
     }
+}
+
+// Exporter les données au format JSON
+function exportTableData() {
+    if (!refineryData) {
+        showNotification(document.getElementById('table-notification'), 'Aucune donnée à exporter', 'error');
+        return;
+    }
+    
+    try {
+        // Convertir en JSON
+        const dataStr = JSON.stringify(refineryData, null, 2);
+        
+        // Télécharger le fichier
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'refineries.json';
+        link.click();
+        
+        showNotification(document.getElementById('table-notification'), 'Données exportées avec succès!', 'success');
+    } catch (error) {
+        showNotification(document.getElementById('table-notification'), `Erreur lors de l'exportation: ${error.message}`, 'error');
+    }
+}
+
+// Initialiser les écouteurs d'événements pour le tableau
+function initTableEvents() {
+    // Filtres
+    document.getElementById('filter-country').addEventListener('change', displayRefineryTable);
+    document.getElementById('filter-status').addEventListener('change', displayRefineryTable);
+    document.getElementById('filter-search').addEventListener('input', displayRefineryTable);
+    
+    // Boutons d'action
+    document.getElementById('add-new-btn').addEventListener('click', addNewRefinery);
+    document.getElementById('refresh-table-btn').addEventListener('click', loadRefineryData);
+    document.getElementById('save-all-changes-btn').addEventListener('click', saveAllChanges);
+    document.getElementById('increment-version-btn').addEventListener('click', incrementVersion);
+    document.getElementById('export-table-btn').addEventListener('click', exportTableData);
+    
+    // Modal d'édition
+    document.getElementById('edit-form').addEventListener('submit', saveRefineryChanges);
+    document.getElementById('edit-cancel').addEventListener('click', () => {
+        document.getElementById('edit-modal').style.display = 'none';
+    });
+    document.getElementById('edit-modal-close').addEventListener('click', () => {
+        document.getElementById('edit-modal').style.display = 'none';
+    });
+    
+    // Modal de suppression
+    document.getElementById('delete-confirm').addEventListener('click', confirmDelete);
+    document.getElementById('delete-cancel').addEventListener('click', () => {
+        document.getElementById('delete-modal').style.display = 'none';
+    });
+    
+    // Fermer les modals en cliquant à l'extérieur
+    window.addEventListener('click', (e) => {
+        if (e.target === document.getElementById('edit-modal')) {
+            document.getElementById('edit-modal').style.display = 'none';
+        }
+        if (e.target === document.getElementById('delete-modal')) {
+            document.getElementById('delete-modal').style.display = 'none';
+        }
+        if (e.target === document.getElementById('github-modal')) {
+            document.getElementById('github-modal').style.display = 'none';
+        }
+    });
+}
+
+// Initialiser dès que le DOM est chargé
+document.addEventListener('DOMContentLoaded', function() {
+    initTableEvents();
+    loadRefineryData();
 });
