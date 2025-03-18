@@ -14,12 +14,103 @@
     
     <!-- Cache Buster - Doit être chargé en premier -->
     <script src="js/cache-buster.js"></script>
+    
+    <!-- Styles pour le login modal -->
+    <style>
+        /* Style pour le modal de connexion */
+        .login-modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+        }
+        
+        .login-modal-content {
+            background-color: var(--bg-color, white);
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 400px;
+            position: relative;
+        }
+        
+        .login-modal-close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .login-modal-close:hover {
+            color: var(--accent-color, #3498db);
+        }
+        
+        .login-form-group {
+            margin-bottom: 15px;
+        }
+        
+        .login-form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .login-form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .login-btn {
+            background-color: var(--accent-color, #3498db);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .login-btn:hover {
+            opacity: 0.9;
+        }
+        
+        #login-message {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        
+        /* Bouton Admin dans l'en-tête */
+        .admin-btn {
+            background-color: #e74c3c;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .admin-btn:hover {
+            background-color: #c0392b;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>Dashboard des Installations de Recyclage de Batteries de Véhicules Électriques en Amérique du Nord</h1>
             <p>Dernière mise à jour: 18 mars 2025</p>
+            <button id="admin-btn" class="admin-btn">Administration</button>
         </header>
         
         <!-- Filtres -->
@@ -271,6 +362,26 @@
             </div>
         </div>
         
+        <!-- Modal de login -->
+        <div id="login-modal" class="login-modal">
+            <div class="login-modal-content">
+                <span class="login-modal-close">&times;</span>
+                <h2>Connexion Administrateur</h2>
+                <form id="login-form">
+                    <div class="login-form-group">
+                        <label for="login-username">Nom d'utilisateur:</label>
+                        <input type="text" id="login-username" required>
+                    </div>
+                    <div class="login-form-group">
+                        <label for="login-password">Mot de passe:</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="login-btn">Se connecter</button>
+                </form>
+                <div id="login-message"></div>
+            </div>
+        </div>
+        
         <footer style="margin-top: 30px; text-align: center; color: #666;">
             <p>Dashboard des Installations de Recyclage de Batteries de Véhicules Électriques en Amérique du Nord - Mis à jour le 18 mars 2025</p>
             <p><a href="https://github.com/tofunori/Lithium-Dashboard" target="_blank">Code source sur GitHub</a></p>
@@ -287,5 +398,7 @@
     <script src="js/map.js"></script>
     <script src="js/table.js"></script>
     <script src="js/main.js"></script>
+    <!-- Script d'authentification -->
+    <script src="js/auth.js"></script>
 </body>
 </html>
