@@ -194,58 +194,81 @@ function extractNumberFromProduction(production) {
     return null;
 }
 
+// Fonction pour configurer les en-têtes triables du tableau
+function setupSortableTableHeaders() {
+    const tableHead = document.querySelector('#refineries-table thead');
+    const headerRow = tableHead.querySelector('tr');
+    
+    // Remplacer les en-têtes actuels par des en-têtes triables
+    headerRow.innerHTML = `
+        <th data-sort="name" class="sortable">Nom ${currentSortColumn === 'name' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
+        <th data-sort="location" class="sortable">Emplacement ${currentSortColumn === 'location' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
+        <th data-sort="country" class="sortable">Pays ${currentSortColumn === 'country' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
+        <th data-sort="status" class="sortable">Statut ${currentSortColumn === 'status' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
+        <th data-sort="production" class="sortable">Production ${currentSortColumn === 'production' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
+        <th data-sort="processing" class="sortable">Technologie ${currentSortColumn === 'processing' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
+        <th data-sort="website" class="sortable">Site web ${currentSortColumn === 'website' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
+    `;
+    
+    // Ajouter des écouteurs d'événements pour le tri
+    tableHead.querySelectorAll('th.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+            const column = th.getAttribute('data-sort');
+            
+            // Inverser la direction si on clique sur la même colonne
+            if (column === currentSortColumn) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortDirection = 'asc';
+            }
+            
+            // Mettre à jour les symboles de tri dans les en-têtes
+            tableHead.querySelectorAll('th.sortable').forEach(header => {
+                const headerColumn = header.getAttribute('data-sort');
+                if (headerColumn === currentSortColumn) {
+                    header.innerHTML = `${header.textContent.replace(/[▲▼]$/, '')} ${currentSortDirection === 'asc' ? '▲' : '▼'}`;
+                } else {
+                    header.innerHTML = header.textContent.replace(/[▲▼]$/, '');
+                }
+            });
+            
+            // Trier et mettre à jour le tableau
+            updateDashboard();
+        });
+        
+        // Ajouter un curseur de pointeur pour indiquer que les en-têtes sont cliquables
+        th.style.cursor = 'pointer';
+    });
+    
+    // Ajouter du style CSS pour les colonnes triables
+    const style = document.getElementById('sortable-style') || document.createElement('style');
+    style.id = 'sortable-style';
+    style.textContent = `
+        .sortable {
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+        }
+        .sortable:hover {
+            background-color: rgba(128, 128, 128, 0.1);
+        }
+    `;
+    if (!document.getElementById('sortable-style')) {
+        document.head.appendChild(style);
+    }
+}
+
 // Fonction pour mettre à jour le tableau
 function updateTable(filteredRefineries) {
     const tableBody = document.querySelector('#refineries-table tbody');
-    const tableHead = document.querySelector('#refineries-table thead');
+    
+    // Configurer les en-têtes triables si ce n'est pas déjà fait
+    // Cette ligne est nécessaire car la condition dans l'ancien code pourrait ne pas toujours fonctionner
+    setupSortableTableHeaders();
     
     // Vider le tableau
     tableBody.innerHTML = '';
-    
-    // Ajouter les en-têtes triables s'ils n'existent pas déjà
-    if (!tableHead.querySelector('th[data-sort]')) {
-        const headerRow = tableHead.querySelector('tr');
-        headerRow.innerHTML = `
-            <th data-sort="name" class="sortable">Nom ${currentSortColumn === 'name' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
-            <th data-sort="location" class="sortable">Emplacement ${currentSortColumn === 'location' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
-            <th data-sort="country" class="sortable">Pays ${currentSortColumn === 'country' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
-            <th data-sort="status" class="sortable">Statut ${currentSortColumn === 'status' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
-            <th data-sort="production" class="sortable">Production ${currentSortColumn === 'production' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
-            <th data-sort="processing" class="sortable">Technologie ${currentSortColumn === 'processing' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
-            <th data-sort="website" class="sortable">Site web ${currentSortColumn === 'website' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
-        `;
-        
-        // Ajouter des écouteurs d'événements pour le tri
-        tableHead.querySelectorAll('th.sortable').forEach(th => {
-            th.addEventListener('click', () => {
-                const column = th.getAttribute('data-sort');
-                
-                // Inverser la direction si on clique sur la même colonne
-                if (column === currentSortColumn) {
-                    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
-                } else {
-                    currentSortColumn = column;
-                    currentSortDirection = 'asc';
-                }
-                
-                // Mettre à jour les symboles de tri dans les en-têtes
-                tableHead.querySelectorAll('th.sortable').forEach(header => {
-                    const headerColumn = header.getAttribute('data-sort');
-                    if (headerColumn === currentSortColumn) {
-                        header.innerHTML = `${header.textContent.replace(/[▲▼]$/, '')} ${currentSortDirection === 'asc' ? '▲' : '▼'}`;
-                    } else {
-                        header.innerHTML = header.textContent.replace(/[▲▼]$/, '');
-                    }
-                });
-                
-                // Trier et mettre à jour le tableau
-                updateDashboard();
-            });
-            
-            // Ajouter un curseur de pointeur pour indiquer que les en-têtes sont cliquables
-            th.style.cursor = 'pointer';
-        });
-    }
     
     // Trier les données si nécessaire
     let sortedRefineries = [...filteredRefineries];
@@ -281,23 +304,6 @@ function updateTable(filteredRefineries) {
         
         tableBody.appendChild(row);
     });
-    
-    // Ajouter du style CSS pour les colonnes triables
-    const style = document.getElementById('sortable-style') || document.createElement('style');
-    style.id = 'sortable-style';
-    style.textContent = `
-        .sortable {
-            position: relative;
-            cursor: pointer;
-            user-select: none;
-        }
-        .sortable:hover {
-            background-color: rgba(128, 128, 128, 0.1);
-        }
-    `;
-    if (!document.getElementById('sortable-style')) {
-        document.head.appendChild(style);
-    }
 }
 
 // Mettre à jour les statistiques globales (avec toutes les installations)
