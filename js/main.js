@@ -9,7 +9,6 @@ const countryFilter = document.getElementById('country-filter');
 const statusFilter = document.getElementById('status-filter');
 const capacityFilter = document.getElementById('capacity-filter');
 const capacityValue = document.getElementById('capacity-value');
-const addRefineryBtn = document.getElementById('add-refinery-btn');
 const exportJsonBtn = document.getElementById('export-json-btn');
 const themeToggleBtn = document.getElementById('theme-toggle-btn');
 
@@ -206,13 +205,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateDashboard();
     });
     
-    addRefineryBtn.addEventListener('click', openAddModal);
     exportJsonBtn.addEventListener('click', exportJSON);
     themeToggleBtn.addEventListener('click', toggleDarkMode);
-    
-    modalClose.addEventListener('click', closeModal);
-    cancelButton.addEventListener('click', closeModal);
-    refineryForm.addEventListener('submit', saveRefinery);
     
     // Fermer le modal si on clique en dehors
     window.addEventListener('click', (e) => {
