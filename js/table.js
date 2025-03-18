@@ -5,6 +5,11 @@ let currentSortDirection = 'asc';
 // Fonction pour mettre à jour la visualisation par pays
 function updateCountriesView(filteredRefineries) {
     const countriesContainer = document.querySelector('.countries-container');
+    if (!countriesContainer) {
+        console.error("Container des pays non trouvé");
+        return;
+    }
+    
     countriesContainer.innerHTML = '';
     
     // Regrouper les installations par pays
@@ -70,6 +75,11 @@ function updateCountriesView(filteredRefineries) {
 // Fonction pour afficher les détails d'une installation
 function showRefineryDetails(refinery) {
     const refineryDetails = document.getElementById('refinery-details');
+    if (!refineryDetails) {
+        console.error("Élément des détails d'installation non trouvé");
+        return;
+    }
+    
     refineryDetails.innerHTML = `
         <h3>
             ${refinery.name}
@@ -108,18 +118,26 @@ function showRefineryDetails(refinery) {
         refineryDetails.style.display = 'none';
     });
     
-    refineryDetails.querySelector('.edit-btn').addEventListener('click', () => {
-        openEditModal(refinery);
-    });
+    const editBtn = refineryDetails.querySelector('.edit-btn');
+    if (editBtn && typeof openEditModal === 'function') {
+        editBtn.addEventListener('click', () => {
+            openEditModal(refinery);
+        });
+    }
     
-    refineryDetails.querySelector('.delete-btn').addEventListener('click', () => {
-        if (confirm(`Êtes-vous sûr de vouloir supprimer ${refinery.name}?`)) {
-            deleteRefinery(refinery.id);
-        }
-    });
+    const deleteBtn = refineryDetails.querySelector('.delete-btn');
+    if (deleteBtn && typeof deleteRefinery === 'function') {
+        deleteBtn.addEventListener('click', () => {
+            if (confirm(`Êtes-vous sûr de vouloir supprimer ${refinery.name}?`)) {
+                deleteRefinery(refinery.id);
+            }
+        });
+    }
     
     // Centrer la carte sur l'installation
-    focusOnRefinery(refinery);
+    if (typeof focusOnRefinery === 'function') {
+        focusOnRefinery(refinery);
+    }
 }
 
 // Fonction pour comparer les valeurs pour le tri
@@ -203,7 +221,16 @@ function extractNumberFromProduction(production) {
 // Fonction pour configurer les en-têtes triables du tableau
 function setupSortableTableHeaders() {
     const tableHead = document.querySelector('#refineries-table thead');
+    if (!tableHead) {
+        console.error("En-tête du tableau non trouvée");
+        return;
+    }
+    
     const headerRow = tableHead.querySelector('tr');
+    if (!headerRow) {
+        console.error("Ligne d'en-tête du tableau non trouvée");
+        return;
+    }
     
     // Remplacer les en-têtes actuels par des en-têtes triables
     headerRow.innerHTML = `
@@ -240,7 +267,11 @@ function setupSortableTableHeaders() {
             });
             
             // Trier et mettre à jour le tableau
-            updateDashboard();
+            if (typeof updateDashboard === 'function') {
+                updateDashboard();
+            } else if (typeof window.updateDashboard === 'function') {
+                window.updateDashboard();
+            }
         });
         
         // Ajouter un curseur de pointeur pour indiquer que les en-têtes sont cliquables
@@ -267,10 +298,15 @@ function setupSortableTableHeaders() {
 
 // Fonction pour mettre à jour le tableau
 function updateTable(filteredRefineries) {
-    const tableBody = document.querySelector('#refineries-table tbody');
+    console.log("Mise à jour du tableau avec", filteredRefineries.length, "installations filtrées");
     
-    // Configurer les en-têtes triables si ce n'est pas déjà fait
-    // Cette ligne est nécessaire car la condition dans l'ancien code pourrait ne pas toujours fonctionner
+    const tableBody = document.querySelector('#refineries-table tbody');
+    if (!tableBody) {
+        console.error("Corps du tableau non trouvé");
+        return;
+    }
+    
+    // Configurer les en-têtes triables
     setupSortableTableHeaders();
     
     // Vider le tableau
@@ -319,6 +355,12 @@ function updateGlobalStats() {
     const constructionRefineries = document.getElementById('construction-refineries');
     const totalCapacity = document.getElementById('total-capacity');
     
+    // Vérifier que les éléments existent
+    if (!totalRefineries || !operationalRefineries || !constructionRefineries || !totalCapacity) {
+        console.warn("Certains éléments de statistiques globales n'ont pas été trouvés");
+        return;
+    }
+    
     // Utiliser toutes les installations, pas seulement les filtrées
     totalRefineries.textContent = refineries.length;
     operationalRefineries.textContent = refineries.filter(r => r.status === 'Opérationnel').length;
@@ -349,17 +391,32 @@ function updateStats(filteredRefineries) {
     // Premièrement, mettre à jour les statistiques globales
     updateGlobalStats();
     
+    // Vérifier que les éléments existent
+    const countryFilter = document.getElementById('country-filter');
+    const statusFilter = document.getElementById('status-filter');
+    const capacityFilter = document.getElementById('capacity-filter');
+    
+    if (!countryFilter || !statusFilter || !capacityFilter) {
+        console.warn("Certains éléments de filtres n'ont pas été trouvés");
+        return;
+    }
+    
     // Si aucun filtre n'est activé, nous avons déjà les bonnes statistiques
-    const countryFilter = document.getElementById('country-filter').value;
-    const statusFilter = document.getElementById('status-filter').value;
-    const capacityFilter = parseInt(document.getElementById('capacity-filter').value) || 0;
+    const countryValue = countryFilter.value;
+    const statusValue = statusFilter.value;
+    const capacityValue = parseInt(capacityFilter.value) || 0;
     
     // Si des filtres sont actifs, mettre à jour les statistiques avec les données filtrées
-    if (countryFilter !== 'all' || statusFilter !== 'all' || capacityFilter > 0) {
+    if (countryValue !== 'all' || statusValue !== 'all' || capacityValue > 0) {
         const totalRefineries = document.getElementById('total-refineries');
         const operationalRefineries = document.getElementById('operational-refineries');
         const constructionRefineries = document.getElementById('construction-refineries');
         const totalCapacity = document.getElementById('total-capacity');
+        
+        if (!totalRefineries || !operationalRefineries || !constructionRefineries || !totalCapacity) {
+            console.warn("Certains éléments de statistiques n'ont pas été trouvés");
+            return;
+        }
         
         totalRefineries.textContent = filteredRefineries.length;
         operationalRefineries.textContent = filteredRefineries.filter(r => r.status === 'Opérationnel').length;
@@ -385,3 +442,9 @@ function updateStats(filteredRefineries) {
         totalCapacity.textContent = capacity.toLocaleString();
     }
 }
+
+// Exposer les fonctions dans l'espace global
+window.updateCountriesView = updateCountriesView;
+window.updateTable = updateTable;
+window.updateStats = updateStats;
+window.updateGlobalStats = updateGlobalStats;
