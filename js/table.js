@@ -1,3 +1,7 @@
+// Variables globales pour la gestion du tri
+let currentSortColumn = null;
+let currentSortDirection = 'asc';
+
 // Fonction pour mettre à jour la visualisation par pays
 function updateCountriesView(filteredRefineries) {
     const countriesContainer = document.querySelector('.countries-container');
@@ -112,12 +116,145 @@ function showRefineryDetails(refinery) {
     focusOnRefinery(refinery);
 }
 
+// Fonction pour comparer les valeurs pour le tri
+function compareValues(a, b, column, direction) {
+    let valueA, valueB;
+    
+    // Extraire les valeurs en fonction de la colonne
+    switch(column) {
+        case 'name':
+            valueA = a.name.toLowerCase();
+            valueB = b.name.toLowerCase();
+            break;
+        case 'location':
+            valueA = a.location.toLowerCase();
+            valueB = b.location.toLowerCase();
+            break;
+        case 'country':
+            valueA = a.country.toLowerCase();
+            valueB = b.country.toLowerCase();
+            break;
+        case 'status':
+            valueA = a.status.toLowerCase();
+            valueB = b.status.toLowerCase();
+            break;
+        case 'production':
+            // Gestion spéciale pour les valeurs de production
+            valueA = a.production;
+            valueB = b.production;
+            
+            // Extraire les nombres si possible
+            const numA = extractNumberFromProduction(valueA);
+            const numB = extractNumberFromProduction(valueB);
+            
+            if (numA !== null && numB !== null) {
+                return direction === 'asc' ? numA - numB : numB - numA;
+            }
+            
+            // Si on ne peut pas extraire de nombres, trier alphabétiquement
+            valueA = valueA.toLowerCase();
+            valueB = valueB.toLowerCase();
+            break;
+        case 'processing':
+            valueA = a.processing.toLowerCase();
+            valueB = b.processing.toLowerCase();
+            break;
+        case 'website':
+            valueA = a.website.toLowerCase();
+            valueB = b.website.toLowerCase();
+            break;
+        default:
+            valueA = a.name.toLowerCase();
+            valueB = b.name.toLowerCase();
+    }
+    
+    // Comparer les valeurs
+    if (valueA < valueB) return direction === 'asc' ? -1 : 1;
+    if (valueA > valueB) return direction === 'asc' ? 1 : -1;
+    return 0;
+}
+
+// Fonction pour extraire un nombre de la valeur de production
+function extractNumberFromProduction(production) {
+    if (production === 'N/A' || production === 'Variable') {
+        return null;
+    }
+    
+    // Extraire les chiffres de la chaîne de production
+    const match = production.match(/\d[\d\s]*[\d,\.]+/);
+    if (match) {
+        // Nettoyer et convertir en nombre
+        const cleanNum = match[0].replace(/\s/g, '').replace(/,/g, '').replace(/\./g, '');
+        const num = parseInt(cleanNum);
+        if (!isNaN(num)) {
+            return num;
+        }
+    }
+    
+    return null;
+}
+
 // Fonction pour mettre à jour le tableau
 function updateTable(filteredRefineries) {
-    const tableBody = document.getElementById('refineries-table-body');
+    const tableBody = document.querySelector('#refineries-table tbody');
+    const tableHead = document.querySelector('#refineries-table thead');
+    
+    // Vider le tableau
     tableBody.innerHTML = '';
     
-    filteredRefineries.forEach(refinery => {
+    // Ajouter les en-têtes triables s'ils n'existent pas déjà
+    if (!tableHead.querySelector('th[data-sort]')) {
+        const headerRow = tableHead.querySelector('tr');
+        headerRow.innerHTML = `
+            <th data-sort="name" class="sortable">Nom ${currentSortColumn === 'name' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
+            <th data-sort="location" class="sortable">Emplacement ${currentSortColumn === 'location' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
+            <th data-sort="country" class="sortable">Pays ${currentSortColumn === 'country' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
+            <th data-sort="status" class="sortable">Statut ${currentSortColumn === 'status' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
+            <th data-sort="production" class="sortable">Production ${currentSortColumn === 'production' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
+            <th data-sort="processing" class="sortable">Technologie ${currentSortColumn === 'processing' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
+            <th data-sort="website" class="sortable">Site web ${currentSortColumn === 'website' ? (currentSortDirection === 'asc' ? '▲' : '▼') : ''}</th>
+        `;
+        
+        // Ajouter des écouteurs d'événements pour le tri
+        tableHead.querySelectorAll('th.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                const column = th.getAttribute('data-sort');
+                
+                // Inverser la direction si on clique sur la même colonne
+                if (column === currentSortColumn) {
+                    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSortColumn = column;
+                    currentSortDirection = 'asc';
+                }
+                
+                // Mettre à jour les symboles de tri dans les en-têtes
+                tableHead.querySelectorAll('th.sortable').forEach(header => {
+                    const headerColumn = header.getAttribute('data-sort');
+                    if (headerColumn === currentSortColumn) {
+                        header.innerHTML = `${header.textContent.replace(/[▲▼]$/, '')} ${currentSortDirection === 'asc' ? '▲' : '▼'}`;
+                    } else {
+                        header.innerHTML = header.textContent.replace(/[▲▼]$/, '');
+                    }
+                });
+                
+                // Trier et mettre à jour le tableau
+                updateDashboard();
+            });
+            
+            // Ajouter un curseur de pointeur pour indiquer que les en-têtes sont cliquables
+            th.style.cursor = 'pointer';
+        });
+    }
+    
+    // Trier les données si nécessaire
+    let sortedRefineries = [...filteredRefineries];
+    if (currentSortColumn) {
+        sortedRefineries.sort((a, b) => compareValues(a, b, currentSortColumn, currentSortDirection));
+    }
+    
+    // Afficher les données triées et filtrées
+    sortedRefineries.forEach(refinery => {
         const row = document.createElement('tr');
         
         row.innerHTML = `
@@ -127,6 +264,7 @@ function updateTable(filteredRefineries) {
                     : refinery.name}
             </td>
             <td>${refinery.location}</td>
+            <td>${refinery.country}</td>
             <td>
                 <span style="display: inline-block; padding: 2px 8px; border-radius: 10px; background-color: ${STATUS_COLORS[refinery.status]}20; color: ${STATUS_COLORS[refinery.status]};">
                     ${refinery.status}
@@ -135,32 +273,31 @@ function updateTable(filteredRefineries) {
             <td>${refinery.production}</td>
             <td>${refinery.processing}</td>
             <td>
-                <button class="edit-row-btn" data-id="${refinery.id}" style="background: none; border: none; color: var(--primary-color); cursor: pointer; margin-right: 10px;">Modifier</button>
-                <button class="delete-row-btn" data-id="${refinery.id}" style="background: none; border: none; color: #f44336; cursor: pointer;">Supprimer</button>
+                ${refinery.website !== 'N/A' 
+                    ? `<a href="${refinery.website}" target="_blank" style="color: var(--primary-color); text-decoration: none;">Site</a>` 
+                    : '-'}
             </td>
         `;
         
         tableBody.appendChild(row);
     });
     
-    // Ajouter des gestionnaires d'événements pour les boutons
-    document.querySelectorAll('.edit-row-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const id = parseInt(e.target.getAttribute('data-id'));
-            const refinery = refineries.find(r => r.id === id);
-            openEditModal(refinery);
-        });
-    });
-    
-    document.querySelectorAll('.delete-row-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const id = parseInt(e.target.getAttribute('data-id'));
-            const refinery = refineries.find(r => r.id === id);
-            if (confirm(`Êtes-vous sûr de vouloir supprimer ${refinery.name}?`)) {
-                deleteRefinery(id);
-            }
-        });
-    });
+    // Ajouter du style CSS pour les colonnes triables
+    const style = document.getElementById('sortable-style') || document.createElement('style');
+    style.id = 'sortable-style';
+    style.textContent = `
+        .sortable {
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+        }
+        .sortable:hover {
+            background-color: rgba(128, 128, 128, 0.1);
+        }
+    `;
+    if (!document.getElementById('sortable-style')) {
+        document.head.appendChild(style);
+    }
 }
 
 // Mettre à jour les statistiques globales (avec toutes les installations)
