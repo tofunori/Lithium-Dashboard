@@ -41,11 +41,17 @@ function updateCountriesView(filteredRefineries) {
             refineryItem.className = 'refinery-item';
             refineryItem.setAttribute('data-id', refinery.id);
             
+            // Corriger l'attribution des classes de statut pour inclure "En pause"
             let statusClass = '';
-            if (refinery.status === 'Opérationnel') statusClass = 'status-operational';
-            else if (refinery.status === 'En construction') statusClass = 'status-construction';
-            else if (refinery.status === 'En suspens') statusClass = 'status-suspended';
-            else statusClass = 'status-planned';
+            if (refinery.status === 'Opérationnel') {
+                statusClass = 'status-operational';
+            } else if (refinery.status === 'En construction') {
+                statusClass = 'status-construction';
+            } else if (refinery.status === 'En suspens' || refinery.status === 'En pause') {
+                statusClass = 'status-suspended';
+            } else {
+                statusClass = 'status-planned';
+            }
             
             refineryItem.innerHTML = `
                 <div class="status-dot ${statusClass}"></div>
