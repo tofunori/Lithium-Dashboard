@@ -14,8 +14,59 @@
     
     <!-- Cache Buster - Doit être chargé en premier -->
     <script src="js/cache-buster.js"></script>
+    
+    <style>
+        /* Styles pour le bouton admin */
+        .admin-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            z-index: 1000;
+        }
+        
+        .admin-button:hover {
+            background-color: #2980b9;
+        }
+        
+        /* Style pour le formulaire de login */
+        #admin-login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        #login-error {
+            color: #e74c3c;
+            background-color: #fce4e4;
+            border: 1px solid #f7b6b6;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        /* Pour les écrans mobiles */
+        @media (max-width: 768px) {
+            .admin-button {
+                top: 10px;
+                right: 10px;
+                padding: 5px 10px;
+                font-size: 14px;
+            }
+        }
+    </style>
 </head>
 <body>
+    <!-- Bouton Admin -->
+    <button id="admin-button" class="admin-button">Admin</button>
+    
     <div class="container">
         <header>
             <h1>Dashboard des Installations de Recyclage de Batteries de Véhicules Électriques en Amérique du Nord</h1>
@@ -271,6 +322,34 @@
             </div>
         </div>
         
+        <!-- Modal de connexion admin -->
+        <div id="admin-login-modal" class="modal">
+            <div class="modal-content" style="max-width: 400px;">
+                <button class="modal-close">&times;</button>
+                <h2>Connexion administrateur</h2>
+                
+                <form id="admin-login-form">
+                    <div class="form-group">
+                        <label for="admin-password">Mot de passe:</label>
+                        <input type="password" id="admin-password" required>
+                    </div>
+                    
+                    <div id="login-error">
+                        Mot de passe incorrect. Veuillez réessayer.
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" style="background-color: #3498db; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer;">Se connecter</button>
+                    </div>
+                </form>
+                
+                <div style="margin-top: 20px; font-size: 14px; color: #666;">
+                    <p>Mot de passe par défaut: <strong>admin123</strong></p>
+                    <p>Note: Dans un environnement de production, ce message ne serait pas affiché.</p>
+                </div>
+            </div>
+        </div>
+        
         <footer style="margin-top: 30px; text-align: center; color: #666;">
             <p>Dashboard des Installations de Recyclage de Batteries de Véhicules Électriques en Amérique du Nord - Mis à jour le 18 mars 2025</p>
             <p><a href="https://github.com/tofunori/Lithium-Dashboard" target="_blank">Code source sur GitHub</a></p>
@@ -287,5 +366,6 @@
     <script src="js/map.js"></script>
     <script src="js/table.js"></script>
     <script src="js/main.js"></script>
+    <script src="js/admin-auth.js"></script>
 </body>
 </html>
