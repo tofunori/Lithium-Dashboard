@@ -2,6 +2,7 @@
 let refineries = [];
 let STATUS_COLORS = {};
 let CHART_COLORS = [];
+let lastDataUpdateTimestamp = 0;
 
 // Fonction pour charger les données depuis le fichier JSON
 async function loadData() {
@@ -27,14 +28,20 @@ async function loadData() {
         if (savedData) {
             try {
                 refineries = JSON.parse(savedData);
+                // Stocker un timestamp de la dernière mise à jour connue
+                lastDataUpdateTimestamp = parseInt(localStorage.getItem('lastDataUpdateTimestamp') || Date.now());
             } catch (e) {
                 console.error('Erreur lors du chargement des données locales:', e);
                 refineries = jsonData.refineries;
                 localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
+                lastDataUpdateTimestamp = Date.now();
+                localStorage.setItem('lastDataUpdateTimestamp', lastDataUpdateTimestamp);
             }
         } else {
             refineries = jsonData.refineries;
             localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
+            lastDataUpdateTimestamp = Date.now();
+            localStorage.setItem('lastDataUpdateTimestamp', lastDataUpdateTimestamp);
         }
         
         // Charger les couleurs pour les statuts et les graphiques
@@ -42,6 +49,10 @@ async function loadData() {
         CHART_COLORS = jsonData.chart_colors;
         
         console.log('Données chargées avec succès depuis refineries.json');
+        
+        // Configurer la vérification périodique des mises à jour
+        setupDataSyncCheck();
+        
         return true;
     } catch (e) {
         console.error('Erreur lors du chargement des données depuis le fichier JSON:', e);
@@ -51,7 +62,12 @@ async function loadData() {
         if (savedData) {
             try {
                 refineries = JSON.parse(savedData);
+                lastDataUpdateTimestamp = parseInt(localStorage.getItem('lastDataUpdateTimestamp') || Date.now());
                 console.log('Données chargées depuis localStorage (mode hors-ligne)');
+                
+                // Configurer la vérification périodique des mises à jour
+                setupDataSyncCheck();
+                
                 return true;
             } catch (e) {
                 console.error('Erreur lors du chargement des données locales:', e);
@@ -67,10 +83,48 @@ async function loadData() {
 // Fonction pour sauvegarder les données
 async function saveData() {
     localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
-    console.log('Données sauvegardées dans localStorage');
+    
+    // Mettre à jour le timestamp pour les autres pages
+    lastDataUpdateTimestamp = Date.now();
+    localStorage.setItem('lastDataUpdateTimestamp', lastDataUpdateTimestamp);
+    
+    console.log('Données sauvegardées dans localStorage avec timestamp:', lastDataUpdateTimestamp);
     
     // Ici, vous pourriez ajouter une fonctionnalité pour sauvegarder les données sur le serveur
     // Par exemple, via une API ou un service comme Firebase
+}
+
+// Configurer la vérification périodique des mises à jour
+function setupDataSyncCheck() {
+    // Vérifier toutes les 2 secondes s'il y a des mises à jour
+    setInterval(checkForDataUpdates, 2000);
+}
+
+// Vérifier s'il y a des mises à jour de données
+function checkForDataUpdates() {
+    try {
+        // Vérifier le timestamp de la dernière mise à jour dans localStorage
+        const storedTimestamp = parseInt(localStorage.getItem('lastDataUpdateTimestamp') || '0');
+        
+        // Si le timestamp stocké est plus récent que notre dernier timestamp connu
+        if (storedTimestamp > lastDataUpdateTimestamp) {
+            console.log('Nouvelles données détectées! Mise à jour du dashboard...');
+            
+            // Charger les données mises à jour
+            const savedData = localStorage.getItem('lithiumRefineries');
+            if (savedData) {
+                refineries = JSON.parse(savedData);
+                lastDataUpdateTimestamp = storedTimestamp;
+                
+                // Mettre à jour le dashboard
+                if (typeof updateDashboard === 'function') {
+                    updateDashboard();
+                }
+            }
+        }
+    } catch (e) {
+        console.error('Erreur lors de la vérification des mises à jour:', e);
+    }
 }
 
 // Fonction pour filtrer les installations
@@ -170,11 +224,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('capacity-value').textContent = document.getElementById('capacity-filter').value;
                 updateDisplay();
             });
-            document.getElementById('export-btn').addEventListener('click', exportJSON);
-            document.getElementById('share-btn').addEventListener('click', () => {
-                const link = generateShareLink();
-                navigator.clipboard.writeText(link).then(() => alert('Lien copié dans le presse-papiers !'));
-            });
+            
+            // Vérifier si ces éléments existent avant d'ajouter des écouteurs
+            const exportBtn = document.getElementById('export-btn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportJSON);
+            }
+            
+            const shareBtn = document.getElementById('share-btn');
+            if (shareBtn) {
+                shareBtn.addEventListener('click', () => {
+                    const link = generateShareLink();
+                    navigator.clipboard.writeText(link).then(() => alert('Lien copié dans le presse-papiers !'));
+                });
+            }
         }
     });
 });
