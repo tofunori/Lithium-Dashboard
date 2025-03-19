@@ -296,7 +296,6 @@
                         <option value="En construction">En construction</option>
                         <option value="Planifié">Planifié</option>
                         <option value="Approuvé">Approuvé</option>
-                        <option value="En suspens">En suspens</option>
                         <option value="En pause">En pause</option>
                     </select>
                 </div>
@@ -404,7 +403,6 @@
                                 <option value="En construction">En construction</option>
                                 <option value="Planifié">Planifié</option>
                                 <option value="Approuvé">Approuvé</option>
-                                <option value="En suspens">En suspens</option>
                                 <option value="En pause">En pause</option>
                             </select>
                         </div>
@@ -501,7 +499,6 @@
                             <option value="En construction">En construction</option>
                             <option value="Planifié">Planifié</option>
                             <option value="Approuvé">Approuvé</option>
-                            <option value="En suspens">En suspens</option>
                             <option value="En pause">En pause</option>
                         </select>
                     </div>
@@ -577,6 +574,8 @@
     <script src="js/admin-uploader.js"></script>
     <script src="js/admin-table.js"></script>
     <script src="js/sync.js"></script>
+    <!-- Nouveau script de synchronisation amélioré -->
+    <script src="js/admin-sync.js"></script>
     <script>
         // Fonction pour activer un onglet
         function activateTab(tabName) {
@@ -606,12 +605,40 @@
             // Initialisation de l'éditeur JSON
             document.getElementById('loadButton').addEventListener('click', async function() {
                 try {
-                    const response = await fetch('data/refineries.json');
-                    if (!response.ok) {
-                        throw new Error(`Erreur HTTP: ${response.status}`);
+                    // Charger d'abord depuis localStorage pour avoir les données les plus récentes
+                    const localData = localStorage.getItem('lithiumRefineries');
+                    let jsonData = null;
+                    
+                    if (localData) {
+                        // Si on a des données locales, on les utilise mais on récupère la version depuis le fichier
+                        const response = await fetch('data/refineries.json');
+                        if (response.ok) {
+                            const fileData = await response.json();
+                            jsonData = fileData;
+                            jsonData.refineries = JSON.parse(localData);
+                        } else {
+                            // Si on ne peut pas accéder au fichier JSON, on crée un objet minimal
+                            jsonData = {
+                                version: localStorage.getItem('dashboardVersion') || 'locale',
+                                refineries: JSON.parse(localData),
+                                status_colors: STATUS_COLORS || {
+                                    "Opérationnel": "#00AA00",
+                                    "En construction": "#0000FF",
+                                    "Planifié": "#FFA500",
+                                    "Approuvé": "#FFA500",
+                                    "En pause": "#FF0000"
+                                }
+                            };
+                        }
+                    } else {
+                        // Si pas de données locales, charger depuis le fichier JSON
+                        const response = await fetch('data/refineries.json');
+                        if (!response.ok) {
+                            throw new Error(`Erreur HTTP: ${response.status}`);
+                        }
+                        jsonData = await response.json();
                     }
                     
-                    const jsonData = await response.json();
                     document.getElementById('jsonEditor').value = JSON.stringify(jsonData, null, 2);
                     document.getElementById('versionInfo').textContent = `Version actuelle: ${jsonData.version || 'non définie'}`;
                     
@@ -644,25 +671,15 @@
             // Configurer le comportement de synchronisation
             const syncIndicator = document.querySelector('.sync-indicator');
             if (syncIndicator) {
-                const originalSaveData = window.saveData;
-                if (typeof originalSaveData === 'function') {
-                    // Surcharger la fonction saveData pour déclencher une animation de synchronisation
-                    window.saveData = function() {
-                        syncIndicator.classList.add('active');
-                        const result = originalSaveData.apply(this, arguments);
-                        
-                        if (typeof window.signalDataChange === 'function') {
-                            window.signalDataChange();
-                            console.log("Signal de changement de données émis");
-                        }
-                        
-                        setTimeout(() => {
-                            syncIndicator.classList.remove('active');
-                        }, 1000);
-                        
-                        return result;
-                    };
-                }
+                syncIndicator.style.display = 'none';
+                
+                // Montrer l'indicateur pendant la synchronisation
+                document.addEventListener('lithium_admin_data_changed', function() {
+                    syncIndicator.style.display = 'flex';
+                    setTimeout(() => {
+                        syncIndicator.style.display = 'none';
+                    }, 2000);
+                });
             }
         });
     </script>
