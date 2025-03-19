@@ -209,43 +209,6 @@
         .close:hover {
             color: #333;
         }
-        .logout-btn {
-            margin-left: 10px;
-            background-color: #e74c3c;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .logout-btn:hover {
-            background-color: #c0392b;
-        }
-        .sync-indicator {
-            position: fixed;
-            bottom: 15px;
-            right: 15px;
-            padding: 5px 10px;
-            background-color: #4CAF50;
-            color: white;
-            border-radius: 4px;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-        }
-        .sync-indicator .dot {
-            width: 10px;
-            height: 10px;
-            background-color: #4CAF50;
-            border-radius: 50%;
-            margin-right: 5px;
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0% { background-color: #4CAF50; }
-            50% { background-color: #FFC107; }
-            100% { background-color: #4CAF50; }
-        }
         /* Modal de login */
         #login-modal {
             background-color: rgba(0, 0, 0, 0.5);
@@ -254,7 +217,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             z-index: 1100;
@@ -299,11 +262,52 @@
             text-align: center;
             font-weight: bold;
         }
+        /* Bouton de déconnexion */
+        .logout-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            float: right;
+            margin-top: 10px;
+        }
+        .logout-btn:hover {
+            background-color: #c0392b;
+        }
+        /* Indicateur de synchronisation */
+        .sync-indicator {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+            display: none;
+            align-items: center;
+        }
+        .sync-indicator .dot {
+            width: 10px;
+            height: 10px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { background-color: #4CAF50; }
+            50% { background-color: #FFC107; }
+            100% { background-color: #4CAF50; }
+        }
     </style>
 </head>
 <body>
     <!-- Modal de connexion -->
-    <div id="login-modal" class="modal" style="display: none;">
+    <div id="login-modal" class="modal">
         <div class="login-modal-content">
             <div class="login-modal-header">
                 <h3>Connexion à l'administration</h3>
@@ -319,12 +323,10 @@
             </div>
         </div>
     </div>
-    
+
     <header>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>Administration - Dashboard Recyclage de Batteries VE</h1>
-            <button id="logout-btn" class="logout-btn" onclick="logout()">Déconnexion</button>
-        </div>
+        <button id="logout-btn" class="logout-btn" onclick="logout()">Déconnexion</button>
+        <h1>Administration - Dashboard Recyclage de Batteries VE</h1>
         <p>Utilisez cet outil pour mettre à jour les données des installations de recyclage.</p>
         <a href="index.html" target="_blank" style="display: inline-block; margin-top: 10px; color: #3498db;">Voir le dashboard</a>
     </header>
@@ -440,7 +442,7 @@
                 <li><strong>Tableau des installations</strong> - Vue complète des installations avec filtres et recherche</li>
                 <li><strong>Éditeur JSON</strong> - Modification directe du JSON pour les utilisateurs avancés</li>
                 <li><strong>Import/Export</strong> - Sauvegarde et restauration des données</li>
-                <li><strong>Synchronisation automatique</strong> - Les changements sont répercutés automatiquement sur toutes les pages ouvertes</li>
+                <li><strong>Synchronisation automatique</strong> - Les changements sont répercutés automatiquement</li>
             </ul>
             
             <h3>Gestion des installations</h3>
@@ -577,26 +579,36 @@
     </div>
     
     <!-- Indicateur de synchronisation -->
-    <div class="sync-indicator" style="display: none;">
+    <div class="sync-indicator">
         <div class="dot"></div>
         <span>Synchronisation active</span>
     </div>
 
-    <!-- Scripts intégrés -->
+    <!-- Scripts intégrés pour éviter les problèmes de chargement -->
     <script>
-    // ===== GESTION DE L'AUTHENTIFICATION =====
+    // ===== AUTHENTIFICATION =====
     const AUTH_KEY = 'lithium_dashboard_auth';
     const DEFAULT_CREDENTIALS = {
         username: 'admin',
         password: 'lithium2025'
     };
-
-    // Vérifie si l'utilisateur est connecté
+    
+    // Vérifier si l'utilisateur est connecté
     function isLoggedIn() {
         return localStorage.getItem(AUTH_KEY) === 'true';
     }
-
-    // Connecte l'utilisateur
+    
+    // Protéger la page
+    function protectAdminPage() {
+        if (!isLoggedIn()) {
+            console.log("Non authentifié, affichage du formulaire de connexion");
+            document.getElementById('login-modal').style.display = 'flex';
+        } else {
+            console.log("Authentifié, accès autorisé");
+        }
+    }
+    
+    // Fonction de connexion
     function login(username, password) {
         if (username === DEFAULT_CREDENTIALS.username && password === DEFAULT_CREDENTIALS.password) {
             localStorage.setItem(AUTH_KEY, 'true');
@@ -604,123 +616,22 @@
         }
         return false;
     }
-
-    // Déconnecte l'utilisateur
+    
+    // Fonction de déconnexion
     function logout() {
         localStorage.removeItem(AUTH_KEY);
-        window.location.href = 'index.html';
+        window.location.reload();
     }
 
-    // Protège la page admin
-    function protectAdminPage() {
-        if (!isLoggedIn()) {
-            window.location.href = 'index.html?access=denied';
-        }
-    }
-
-    // Initialise le formulaire de connexion
-    function initLoginForm() {
-        const loginModal = document.getElementById('login-modal');
-        const loginForm = document.getElementById('login-form');
-        const loginMessage = document.getElementById('login-message');
-        
-        // Gérer la soumission du formulaire
-        if (loginForm) {
-            loginForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const username = document.getElementById('login-username').value;
-                const password = document.getElementById('login-password').value;
-                
-                if (login(username, password)) {
-                    loginMessage.textContent = 'Connexion réussie';
-                    loginMessage.style.color = 'green';
-                    // Rediriger vers admin après un court délai
-                    setTimeout(() => {
-                        loginModal.style.display = 'none';
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    loginMessage.textContent = 'Identifiants incorrects';
-                    loginMessage.style.color = 'red';
-                }
-            });
-        }
-        
-        // Fermer le modal lorsque l'utilisateur clique sur la croix ou à l'extérieur
-        const closeButtons = document.querySelectorAll('.login-modal-close');
-        closeButtons.forEach(button => {
-            if (button) {
-                button.addEventListener('click', () => {
-                    loginModal.style.display = 'none';
-                });
-            }
-        });
-        
-        window.addEventListener('click', (e) => {
-            if (e.target === loginModal) {
-                loginModal.style.display = 'none';
-            }
-        });
-    }
-    
-    // ===== SYNCHRONISATION DES DONNÉES =====
-    const SYNC_KEY = 'lithium_dashboard_sync';
+    // ===== SYNCHRONISATION =====
+    const SYNC_KEY = 'lithium_sync_timestamp';
     const DATA_KEY = 'lithiumRefineries';
     
-    // Variable pour suivre la dernière mise à jour connue
-    let lastKnownUpdate = Date.now();
-    let isSyncActive = false; // Éviter les boucles infinies
-    
-    // Fonction pour synchroniser les données
-    function syncData() {
-        // Éviter les boucles de synchronisation
-        if (isSyncActive) return;
-        isSyncActive = true;
-        
-        try {
-            // Charger les données à jour depuis le localStorage
-            const syncData = localStorage.getItem(SYNC_KEY);
-            const timestamp = syncData ? parseInt(syncData) : 0;
-            
-            // Si les données sont plus récentes que notre dernière mise à jour connue
-            if (timestamp > lastKnownUpdate) {
-                console.log('🔄 Nouvelles données disponibles, mise à jour...');
-                
-                // Mettre à jour notre timestamp
-                lastKnownUpdate = timestamp;
-                
-                // Charger les données
-                const data = localStorage.getItem(DATA_KEY);
-                if (data) {
-                    try {
-                        // Mise à jour des données globales
-                        window.refineries = JSON.parse(data);
-                        
-                        // Mettre à jour l'affichage
-                        displayRefineries();
-                        showSyncIndicator();
-                    } catch (parseError) {
-                        console.error('❌ Erreur lors du parsing des données:', parseError);
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('❌ Erreur lors de la synchronisation:', error);
-        } finally {
-            isSyncActive = false;
-        }
-    }
-    
-    // Fonction pour signaler une mise à jour des données
-    function signalDataChange() {
-        try {
-            // Enregistrer le timestamp de la mise à jour
-            lastKnownUpdate = Date.now();
-            localStorage.setItem(SYNC_KEY, lastKnownUpdate.toString());
-            showSyncIndicator();
-        } catch (error) {
-            console.error('❌ Erreur lors de la signalisation des changements:', error);
-        }
+    // Signaler un changement de données
+    function signalChange() {
+        const timestamp = Date.now();
+        localStorage.setItem(SYNC_KEY, timestamp.toString());
+        showSyncIndicator();
     }
     
     // Afficher l'indicateur de synchronisation
@@ -747,30 +658,49 @@
         "En pause": "#FF0000"
     };
     
-    // ===== INITIALISATION DE LA PAGE =====
+    // Initialisation de la page
     document.addEventListener('DOMContentLoaded', () => {
         console.log('Page chargée, initialisation...');
         
-        // Vérifier l'authentification
+        // Protéger la page
         protectAdminPage();
-        initLoginForm();
         
-        // Initialiser les composants de l'interface
-        initTabs();
-        initButtons();
+        // Initialiser le formulaire de connexion
+        const loginForm = document.getElementById('login-form');
+        if (loginForm) {
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const username = document.getElementById('login-username').value;
+                const password = document.getElementById('login-password').value;
+                
+                if (login(username, password)) {
+                    document.getElementById('login-message').textContent = 'Connexion réussie';
+                    document.getElementById('login-message').style.color = 'green';
+                    setTimeout(() => {
+                        document.getElementById('login-modal').style.display = 'none';
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    document.getElementById('login-message').textContent = 'Identifiants incorrects';
+                    document.getElementById('login-message').style.color = 'red';
+                }
+            });
+        }
         
-        // Charger les données
-        loadData();
+        // Fermeture du modal de connexion
+        const modalCloseBtn = document.querySelector('.login-modal-close');
+        if (modalCloseBtn) {
+            modalCloseBtn.addEventListener('click', function() {
+                document.getElementById('login-modal').style.display = 'none';
+            });
+        }
         
-        // Configurer la synchronisation
-        window.addEventListener('storage', function(event) {
-            if (event.key === SYNC_KEY || event.key === DATA_KEY) {
-                syncData();
-            }
-        });
-        
-        // Vérifier les mises à jour périodiquement
-        setInterval(syncData, 2000);
+        // Continuer l'initialisation seulement si connecté
+        if (isLoggedIn()) {
+            initTabs();
+            initButtons();
+            loadData();
+        }
     });
     
     // Initialiser les onglets
@@ -807,13 +737,6 @@
         
         // Upload GitHub
         document.getElementById('upload-github-btn').addEventListener('click', showGitHubModal);
-        document.getElementById('github-upload').addEventListener('click', uploadToGitHub);
-        document.getElementById('github-cancel').addEventListener('click', () => {
-            document.getElementById('github-modal').style.display = 'none';
-        });
-        document.getElementById('github-modal-close').addEventListener('click', () => {
-            document.getElementById('github-modal').style.display = 'none';
-        });
         
         // Onglet Éditeur
         document.getElementById('validate-btn').addEventListener('click', validateJson);
@@ -841,6 +764,15 @@
             document.getElementById('delete-modal').style.display = 'none';
         });
         
+        // Modal GitHub
+        document.getElementById('github-upload').addEventListener('click', uploadToGitHub);
+        document.getElementById('github-cancel').addEventListener('click', () => {
+            document.getElementById('github-modal').style.display = 'none';
+        });
+        document.getElementById('github-modal-close').addEventListener('click', () => {
+            document.getElementById('github-modal').style.display = 'none';
+        });
+        
         // Fermer les modals en cliquant à l'extérieur
         window.addEventListener('click', (e) => {
             if (e.target.classList.contains('modal')) {
@@ -849,7 +781,6 @@
         });
     }
     
-    // ===== GESTION DES DONNÉES =====
     // Charger les données
     async function loadData() {
         showNotification('table-notification', 'Chargement des données...', 'info');
@@ -872,9 +803,6 @@
             allData = data;
             refineries = data.refineries;
             
-            // Sauvegarder dans localStorage pour la synchronisation
-            localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
-            
             // Mettre à jour les informations de version
             document.getElementById('tableVersionInfo').textContent = `Version: ${data.version || 'non définie'}`;
             document.getElementById('editorVersionInfo').textContent = `Version: ${data.version || 'non définie'}`;
@@ -884,6 +812,9 @@
             
             // Charger dans l'éditeur JSON
             document.getElementById('json-editor').value = JSON.stringify(data, null, 2);
+            
+            // Stocker dans localStorage
+            localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
             
             showNotification('table-notification', 'Données chargées avec succès!', 'success');
             return true;
@@ -1013,7 +944,6 @@
         });
     }
     
-    // ===== OPÉRATIONS SUR LES INSTALLATIONS =====
     // Ajouter une nouvelle installation
     function addRefinery() {
         currentId = null;
@@ -1103,9 +1033,9 @@
             document.getElementById('json-editor').value = JSON.stringify(allData, null, 2);
         }
         
-        // Mettre à jour localStorage et signaler le changement
+        // Stocker dans localStorage
         localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
-        signalDataChange();
+        signalChange();
         
         // Fermer la modal
         document.getElementById('delete-modal').style.display = 'none';
@@ -1191,15 +1121,14 @@
             document.getElementById('json-editor').value = JSON.stringify(allData, null, 2);
         }
         
-        // Mettre à jour localStorage et signaler le changement
+        // Stocker dans localStorage
         localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
-        signalDataChange();
+        signalChange();
         
         // Fermer la modal
         document.getElementById('edit-modal').style.display = 'none';
     }
     
-    // ===== OPÉRATIONS SUR LES DONNÉES =====
     // Sauvegarder toutes les modifications
     function saveAllChanges() {
         try {
@@ -1231,9 +1160,9 @@
             link.download = 'refineries.json';
             link.click();
             
-            // Mettre à jour localStorage et signaler le changement
+            // Stocker dans localStorage
             localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
-            signalDataChange();
+            signalChange();
             
             showNotification('table-notification', 'Données sauvegardées avec succès! Téléchargement du fichier refineries.json terminé.', 'success');
         } catch (error) {
@@ -1342,9 +1271,9 @@
                 // Mettre à jour l'éditeur JSON
                 document.getElementById('json-editor').value = JSON.stringify(data, null, 2);
                 
-                // Mettre à jour localStorage et signaler le changement
+                // Stocker dans localStorage
                 localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
-                signalDataChange();
+                signalChange();
                 
                 showNotification('table-notification', 'Fichier importé avec succès!', 'success');
             } catch (error) {
@@ -1358,7 +1287,6 @@
         event.target.value = '';
     }
     
-    // ===== ÉDITEUR JSON =====
     // Valider le JSON dans l'éditeur
     function validateJson() {
         const jsonText = document.getElementById('json-editor').value;
@@ -1414,9 +1342,9 @@
             // Mettre à jour l'affichage
             displayRefineries();
             
-            // Mettre à jour localStorage et signaler le changement
+            // Stocker dans localStorage
             localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
-            signalDataChange();
+            signalChange();
             
             showNotification('editor-notification', 'Modifications appliquées avec succès!', 'success');
         } catch (error) {
@@ -1464,7 +1392,6 @@
         }
     }
     
-    // ===== GITHUB =====
     // Afficher la modal GitHub
     function showGitHubModal() {
         document.getElementById('github-modal').style.display = 'block';
@@ -1539,8 +1466,6 @@
                 throw new Error(`Erreur GitHub (${response.status}): ${errorData.message}`);
             }
             
-            const result = await response.json();
-            
             // Fermer la modal
             document.getElementById('github-modal').style.display = 'none';
             
@@ -1551,7 +1476,6 @@
         }
     }
     
-    // ===== UTILITAIRES =====
     // Afficher une notification
     function showNotification(elementId, message, type) {
         const element = document.getElementById(elementId);
@@ -1574,6 +1498,7 @@
     // Rendre les fonctions disponibles globalement
     window.editRefinery = editRefinery;
     window.deleteRefinery = deleteRefinery;
+    window.logout = logout;
     </script>
 </body>
 </html>
