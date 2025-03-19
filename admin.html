@@ -471,7 +471,7 @@
                 <li>Utilisez les <strong>filtres</strong> pour trouver rapidement des installations</li>
                 <li>Cliquez sur <strong>Ajouter une installation</strong> pour créer une nouvelle entrée</li>
                 <li>Utilisez les boutons <strong>Modifier</strong> et <strong>Supprimer</strong> pour gérer les installations existantes</li>
-                <li>N'oubliez pas de cliquer sur <strong>Enregistrer les modifications</strong> pour télécharger le fichier JSON mis à jour</li>
+                <li>N'oubliez pas de cliquer sur <strong>Enregistrer les modifications</strong> pour sauvegarder les changements</li>
                 <li>Utilisez <strong>Incrémenter la version</strong> pour forcer la mise à jour du dashboard pour tous les utilisateurs</li>
             </ol>
             
@@ -952,7 +952,7 @@
                 <td>${refinery.name || '-'}</td>
                 <td>${refinery.location || '-'}</td>
                 <td>${refinery.country || '-'}</td>
-                <td style="color: ${STATUS_COLORS[refinery.status] || '#000'}">${refinery.status || '-'}</td>
+                <td style="color: ${STATUS_COLORS[refinery.status] || '#000'};">${refinery.status || '-'}</td>
                 <td>${refinery.production || '-'}</td>
                 <td>${refinery.processing || '-'}</td>
                 <td class="action-buttons">
@@ -1251,7 +1251,7 @@
     }
     
     // Sauvegarder toutes les modifications
-    function saveAllChanges() {
+    async function saveAllChanges() {
         try {
             debug('Sauvegarde de toutes les modifications...');
             
@@ -1275,21 +1275,48 @@
                 allData.status_colors = STATUS_COLORS;
             }
             
-            // Convertir en JSON et télécharger
+            // Afficher une notification de chargement
+            showNotification('table-notification', 'Sauvegarde en cours...', 'info');
+            
+            // Convertir en JSON et préparer pour l'envoi
             const dataStr = JSON.stringify(allData, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'refineries.json';
-            link.click();
+            
+            // Tentative d'upload direct vers GitHub
+            try {
+                // Afficher la modal GitHub pour demander le token
+                document.getElementById('github-modal').style.display = 'block';
+                document.getElementById('github-message').value = `Mise à jour des données - ${new Date().toISOString().slice(0, 10)}`;
+                
+                // Aussi télécharger une copie locale pour sécurité
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'refineries.json';
+                link.click();
+                
+                debug('Copie de sauvegarde téléchargée, attente du token GitHub pour l\'upload...');
+                
+            } catch (uploadError) {
+                console.error('Erreur lors de la tentative d\'upload:', uploadError);
+                debug('Erreur lors de la tentative d\'upload', uploadError);
+                
+                // En cas d'échec de l'upload, télécharger le fichier localement
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'refineries.json';
+                link.click();
+                
+                showNotification('table-notification', 'Données sauvegardées localement. Veuillez les uploader manuellement.', 'warning');
+            }
             
             // Stocker dans localStorage
             localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
             signalChange();
             
-            debug('Données sauvegardées avec succès');
-            showNotification('table-notification', 'Données sauvegardées avec succès! Téléchargement du fichier refineries.json terminé.', 'success');
+            debug('Données préparées pour la sauvegarde');
         } catch (error) {
             console.error('Erreur lors de la sauvegarde:', error);
             debug('Erreur lors de la sauvegarde', error);
@@ -1620,6 +1647,9 @@
             }
             
             debug('Envoi de la requête PUT vers GitHub...', requestBody);
+            
+            // Afficher une notification de chargement
+            showNotification('table-notification', 'Upload en cours...', 'info');
             
             // Effectuer la requête
             const response = await fetch('https://api.github.com/repos/tofunori/Lithium-Dashboard/contents/data/refineries.json', {
