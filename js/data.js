@@ -4,12 +4,51 @@ let STATUS_COLORS = {};
 let CHART_COLORS = [];
 let lastDataUpdateTimestamp = 0;
 
+// Constantes pour le localStorage
+const DASHBOARD_DATA_KEY = 'lithium_dashboard_data';
+const DASHBOARD_VERSION_KEY = 'lithium_dashboard_version';
+
 // Fonction pour charger les données depuis le fichier JSON
 async function loadData() {
     try {
         console.log('Tentative de chargement des données...');
         
-        // Récupérer les données depuis le fichier JSON
+        // D'abord, essayer de charger les données depuis localStorage (données modifiées par admin.html)
+        const localData = localStorage.getItem(DASHBOARD_DATA_KEY);
+        if (localData) {
+            try {
+                const data = JSON.parse(localData);
+                if (data && data.refineries && Array.isArray(data.refineries)) {
+                    console.log('Données chargées depuis le localStorage (base de données locale)');
+                    
+                    // Mettre à jour les données globales
+                    refineries = data.refineries;
+                    STATUS_COLORS = data.status_colors || {
+                        "Opérationnel": "#00AA00",
+                        "En construction": "#0000FF",
+                        "Planifié": "#FFA500",
+                        "Approuvé": "#FFA500",
+                        "En suspens": "#FF0000",
+                        "En pause": "#FF0000"
+                    };
+                    CHART_COLORS = data.chart_colors || ["#4a6bff", "#ff7043", "#ffca28", "#66bb6a", "#ab47bc"];
+                    
+                    // Sauvegarder pour compatibilité
+                    localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
+                    lastDataUpdateTimestamp = Date.now();
+                    localStorage.setItem('lastDataUpdateTimestamp', lastDataUpdateTimestamp);
+                    
+                    // Configurer la vérification périodique des mises à jour
+                    setupDataSyncCheck();
+                    
+                    return true;
+                }
+            } catch (localError) {
+                console.warn('Erreur lors de la lecture des données locales:', localError);
+            }
+        }
+        
+        // Si pas de données locales, récupérer les données depuis le fichier JSON
         const response = await fetch('data/refineries.json');
         if (!response.ok) {
             throw new Error(`Erreur HTTP: ${response.status}`);
@@ -22,7 +61,6 @@ async function loadData() {
         const currentVersion = localStorage.getItem('dashboardVersion');
         if (currentVersion !== jsonData.version) {
             console.log(`Nouvelle version détectée: ${jsonData.version} (actuelle: ${currentVersion})`);
-            localStorage.clear();
             localStorage.setItem('dashboardVersion', jsonData.version);
         }
         
@@ -36,6 +74,9 @@ async function loadData() {
         localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
         lastDataUpdateTimestamp = Date.now();
         localStorage.setItem('lastDataUpdateTimestamp', lastDataUpdateTimestamp);
+        
+        // Sauvegarder les données complètes dans le localStorage pour l'admin
+        localStorage.setItem(DASHBOARD_DATA_KEY, JSON.stringify(jsonData));
         
         // Charger les couleurs pour les statuts et les graphiques
         STATUS_COLORS = jsonData.status_colors || {
@@ -123,6 +164,15 @@ async function loadData() {
             lastDataUpdateTimestamp = Date.now();
             localStorage.setItem('lastDataUpdateTimestamp', lastDataUpdateTimestamp);
             
+            // Sauvegarder les données complètes
+            const backupData = {
+                version: "backup-" + new Date().toISOString().slice(0, 10),
+                refineries: refineries,
+                status_colors: STATUS_COLORS,
+                chart_colors: CHART_COLORS
+            };
+            localStorage.setItem(DASHBOARD_DATA_KEY, JSON.stringify(backupData));
+            
             console.log('Données de secours chargées:', refineries.length, 'installations');
             return true;
         } catch (backupError) {
@@ -187,11 +237,29 @@ function setupDataSyncCheck() {
         
         // Ajouter un écouteur d'événements de stockage comme mécanisme de secours
         window.addEventListener('storage', (event) => {
-            if (event.key === 'lithium_update_signal' || event.key === 'lastDataUpdateTimestamp') {
+            if (event.key === 'lithium_update_signal' || event.key === 'lastDataUpdateTimestamp' || event.key === DASHBOARD_DATA_KEY) {
                 try {
-                    const storedTimestamp = parseInt(localStorage.getItem('lastDataUpdateTimestamp') || '0');
-                    if (storedTimestamp > lastDataUpdateTimestamp) {
-                        handleDataUpdate(storedTimestamp);
+                    if (event.key === DASHBOARD_DATA_KEY) {
+                        // Si les données complètes ont été mises à jour
+                        const newData = JSON.parse(localStorage.getItem(DASHBOARD_DATA_KEY));
+                        if (newData) {
+                            refineries = newData.refineries;
+                            STATUS_COLORS = newData.status_colors || STATUS_COLORS;
+                            CHART_COLORS = newData.chart_colors || CHART_COLORS;
+                            
+                            // Mettre à jour l'interface
+                            if (typeof window.updateDashboard === 'function') {
+                                window.updateDashboard();
+                            } else if (typeof updateDisplay === 'function') {
+                                updateDisplay();
+                            }
+                        }
+                    } else {
+                        // Vérification classique par timestamp
+                        const storedTimestamp = parseInt(localStorage.getItem('lastDataUpdateTimestamp') || '0');
+                        if (storedTimestamp > lastDataUpdateTimestamp) {
+                            handleDataUpdate(storedTimestamp);
+                        }
                     }
                 } catch (e) {
                     console.error('Erreur lors du traitement des événements de stockage:', e);
@@ -207,7 +275,36 @@ function setupDataSyncCheck() {
 function handleDataUpdate(timestamp) {
     console.log('Nouvelles données détectées! Mise à jour du dashboard...');
     
-    // Charger les nouvelles données
+    // Essayer d'abord le nouveau format de données
+    const newData = localStorage.getItem(DASHBOARD_DATA_KEY);
+    if (newData) {
+        try {
+            const parsedData = JSON.parse(newData);
+            if (parsedData && parsedData.refineries) {
+                refineries = parsedData.refineries;
+                STATUS_COLORS = parsedData.status_colors || STATUS_COLORS;
+                CHART_COLORS = parsedData.chart_colors || CHART_COLORS;
+                lastDataUpdateTimestamp = timestamp;
+                
+                // Mettre à jour le dashboard
+                if (typeof window.updateDashboard === 'function') {
+                    window.updateDashboard();
+                } else if (typeof updateDisplay === 'function') {
+                    updateDisplay();
+                } else {
+                    // Déclencher un événement personnalisé
+                    const updateEvent = new CustomEvent('lithium_data_updated');
+                    document.dispatchEvent(updateEvent);
+                }
+                
+                return;
+            }
+        } catch (e) {
+            console.error('Erreur lors du traitement des nouvelles données:', e);
+        }
+    }
+    
+    // Méthode de secours : charger les données ancienne version
     const savedData = localStorage.getItem('lithiumRefineries');
     if (savedData) {
         try {
@@ -236,10 +333,24 @@ function handleDataUpdate(timestamp) {
 // Vérifier s'il y a des mises à jour de données
 function checkForDataUpdates() {
     try {
-        // Vérifier le timestamp de la dernière mise à jour dans localStorage
-        const storedTimestamp = parseInt(localStorage.getItem('lastDataUpdateTimestamp') || '0');
+        // Vérifier s'il y a des mises à jour dans le nouveau format
+        const dashboardData = localStorage.getItem(DASHBOARD_DATA_KEY);
+        if (dashboardData) {
+            try {
+                const parsedData = JSON.parse(dashboardData);
+                if (parsedData && parsedData.version && parsedData.version !== lastLoadedVersion) {
+                    console.log('Nouvelle version détectée dans localStorage:', parsedData.version);
+                    lastLoadedVersion = parsedData.version;
+                    handleDataUpdate(Date.now());
+                    return;
+                }
+            } catch (e) {
+                console.error('Erreur lors de la vérification des mises à jour du nouveau format:', e);
+            }
+        }
         
-        // Si le timestamp stocké est plus récent que notre dernier timestamp connu
+        // Méthode de secours - vérifier le timestamp de la dernière mise à jour
+        const storedTimestamp = parseInt(localStorage.getItem('lastDataUpdateTimestamp') || '0');
         if (storedTimestamp > lastDataUpdateTimestamp) {
             handleDataUpdate(storedTimestamp);
         }
