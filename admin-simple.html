@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration - Dashboard Recyclage de Batteries VE (Version Simplifiée)</title>
+    
+    <!-- Styles -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        header {
+            margin-bottom: 30px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        .panel {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .btn-group {
+            margin: 20px 0;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        button.danger {
+            background: #e74c3c;
+        }
+        button.danger:hover {
+            background: #c0392b;
+        }
+        button.success {
+            background: #2ecc71;
+        }
+        button.success:hover {
+            background: #27ae60;
+        }
+        textarea {
+            width: 100%;
+            min-height: 500px;
+            font-family: monospace;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .panel h2 {
+            margin-top: 0;
+        }
+        .notification {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        .notification.success {
+            background: #d5f5e3;
+            border: 1px solid #2ecc71;
+            color: #27ae60;
+        }
+        .notification.error {
+            background: #f5d5d5;
+            border: 1px solid #e74c3c;
+            color: #c0392b;
+        }
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .version-info {
+            font-size: 14px;
+            color: #777;
+        }
+        #jsonValidator {
+            margin-top: 20px;
+            color: #e74c3c;
+        }
+        .github-upload {
+            background-color: #6e5494 !important;
+        }
+        .github-upload:hover {
+            background-color: #583d7e !important;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: #f2f2f2;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            margin-right: 5px;
+        }
+        .tab.active {
+            background: #3498db;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .data-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .data-table tr:hover {
+            background-color: #f5f5f5;
+        }
+        .data-table .action-buttons {
+            white-space: nowrap;
+        }
+        .data-table .action-buttons button {
+            padding: 5px 10px;
+            margin-right: 5px;
+            font-size: 12px;
+        }
+        .filter-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        .filter-bar select, .filter-bar input {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .filter-bar label {
+            margin-right: 5px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 700px;
+            border-radius: 5px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Administration - Dashboard Recyclage de Batteries VE (Version Simplifiée)</h1>
+        <p>Version simplifiée avec chargement direct des données. Utilisez cet outil pour gérer les installations de recyclage.</p>
+        <a href="index.html" target="_blank" style="display: inline-block; margin-top: 10px; color: #3498db;">Voir le dashboard</a>
+    </header>
+    
+    <div class="tabs">
+        <div class="tab active" data-tab="table">Tableau des installations</div>
+        <div class="tab" data-tab="editor">Éditeur JSON</div>
+        <div class="tab" data-tab="help">Instructions</div>
+    </div>
+    
+    <!-- Tableau des installations -->
+    <div id="table-tab" class="tab-content active">
+        <div class="panel">
+            <div class="action-bar">
+                <h2>Gestion des installations de recyclage</h2>
+                <span class="version-info" id="tableVersionInfo">Version actuelle: -</span>
+            </div>
+            
+            <div id="table-notification" class="notification"></div>
+            
+            <div class="filter-bar">
+                <div>
+                    <label for="country-filter">Pays:</label>
+                    <select id="country-filter">
+                        <option value="all">Tous</option>
+                        <option value="Canada">Canada</option>
+                        <option value="États-Unis">États-Unis</option>
+                        <option value="Mexique">Mexique</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="status-filter">Statut:</label>
+                    <select id="status-filter">
+                        <option value="all">Tous</option>
+                        <option value="Opérationnel">Opérationnel</option>
+                        <option value="En construction">En construction</option>
+                        <option value="Planifié">Planifié</option>
+                        <option value="Approuvé">Approuvé</option>
+                        <option value="En pause">En pause</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="search-filter">Recherche:</label>
+                    <input type="text" id="search-filter" placeholder="Rechercher...">
+                </div>
+                <button id="add-installation-btn" class="success">Ajouter une installation</button>
+            </div>
+            
+            <div class="table-container" style="overflow-x: auto;">
+                <table id="refineries-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nom</th>
+                            <th>Emplacement</th>
+                            <th>Pays</th>
+                            <th>Statut</th>
+                            <th>Production</th>
+                            <th>Technologie</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="refineries-table-body">
+                        <!-- Rempli dynamiquement par JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="btn-group">
+                <button id="refresh-btn">Rafraîchir</button>
+                <button id="save-changes-btn" class="success">Enregistrer les modifications</button>
+                <button id="increment-version-btn">Incrémenter la version</button>
+                <button id="export-btn">Exporter (JSON)</button>
+                <button id="import-btn">Importer un fichier JSON</button>
+                <input type="file" id="import-file" accept=".json" style="display: none;">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Éditeur JSON -->
+    <div id="editor-tab" class="tab-content">
+        <div class="panel">
+            <div class="action-bar">
+                <h2>Éditeur de données JSON</h2>
+                <span class="version-info" id="editorVersionInfo">Version actuelle: -</span>
+            </div>
+            
+            <div id="editor-notification" class="notification"></div>
+            
+            <p>Modifiez directement le JSON ci-dessous, puis cliquez sur "Valider" pour vérifier la syntaxe avant de sauvegarder.</p>
+            
+            <textarea id="json-editor"></textarea>
+            
+            <div id="json-validator"></div>
+            
+            <div class="btn-group">
+                <button id="validate-btn">Valider le JSON</button>
+                <button id="apply-btn" class="success" disabled>Appliquer les modifications</button>
+                <button id="download-btn">Télécharger le JSON</button>
+                <button id="reload-btn">Recharger depuis le fichier</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Instructions -->
+    <div id="help-tab" class="tab-content">
+        <div class="panel">
+            <h2>Instructions d'utilisation</h2>
+            <p>Cette version simplifiée du dashboard d'administration a été conçue pour être plus robuste et éliminer les problèmes de chargement de données.</p>
+            
+            <h3>Fonctionnalités principales</h3>
+            <ul>
+                <li><strong>Chargement direct</strong> des données depuis le fichier JSON</li>
+                <li><strong>Édition simplifiée</strong> des installations</li>
+                <li><strong>Sauvegarde fiable</strong> des modifications</li>
+                <li><strong>Export/Import</strong> des données en JSON</li>
+            </ul>
+            
+            <h3>En cas de problème</h3>
+            <p>Si vous rencontrez des difficultés :</p>
+            <ol>
+                <li>Utilisez le bouton <strong>Rafraîchir</strong> pour recharger les données</li>
+                <li>Essayez d'<strong>Importer un fichier JSON</strong> existant</li>
+                <li>Vérifiez la structure de votre fichier JSON dans l'onglet Éditeur</li>
+            </ol>
+            
+            <h3>Retour à la version originale</h3>
+            <p>Pour revenir à la version originale de l'administration, <a href="admin.html">cliquez ici</a>.</p>
+        </div>
+    </div>
+    
+    <!-- Modal pour ajouter/modifier une installation -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="edit-modal-close">&times;</span>
+            <h2 id="edit-modal-title">Ajouter/Modifier une installation</h2>
+            
+            <form id="edit-form">
+                <input type="hidden" id="edit-id">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <label for="edit-name">Nom:</label>
+                        <input type="text" id="edit-name" style="width: 100%; padding: 8px; margin-top: 5px;" required>
+                    </div>
+                    <div>
+                        <label for="edit-location">Emplacement:</label>
+                        <input type="text" id="edit-location" style="width: 100%; padding: 8px; margin-top: 5px;" required>
+                    </div>
+                    <div>
+                        <label for="edit-country">Pays:</label>
+                        <select id="edit-country" style="width: 100%; padding: 8px; margin-top: 5px;" required>
+                            <option value="Canada">Canada</option>
+                            <option value="États-Unis">États-Unis</option>
+                            <option value="Mexique">Mexique</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="edit-coordinates">Coordonnées (lat, lng):</label>
+                        <input type="text" id="edit-coordinates" style="width: 100%; padding: 8px; margin-top: 5px;" placeholder="ex: 45.5017, -73.5673">
+                    </div>
+                    <div>
+                        <label for="edit-status">Statut:</label>
+                        <select id="edit-status" style="width: 100%; padding: 8px; margin-top: 5px;" required>
+                            <option value="Opérationnel">Opérationnel</option>
+                            <option value="En construction">En construction</option>
+                            <option value="Planifié">Planifié</option>
+                            <option value="Approuvé">Approuvé</option>
+                            <option value="En pause">En pause</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="edit-production">Production/Capacité:</label>
+                        <input type="text" id="edit-production" style="width: 100%; padding: 8px; margin-top: 5px;" placeholder="ex: 10 000 tonnes par an">
+                    </div>
+                    <div>
+                        <label for="edit-processing">Technologie:</label>
+                        <input type="text" id="edit-processing" style="width: 100%; padding: 8px; margin-top: 5px;" placeholder="ex: Hydrométallurgie">
+                    </div>
+                    <div>
+                        <label for="edit-website">Site web:</label>
+                        <input type="url" id="edit-website" style="width: 100%; padding: 8px; margin-top: 5px;" placeholder="ex: https://example.com">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="edit-notes">Notes:</label>
+                    <textarea id="edit-notes" rows="3" style="width: 100%; padding: 8px; margin-top: 5px; min-height: 100px;"></textarea>
+                </div>
+                
+                <div style="margin-top: 20px; text-align: right;">
+                    <button type="button" id="edit-cancel" class="danger">Annuler</button>
+                    <button type="submit" id="edit-save" class="success">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal de confirmation pour la suppression -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <h2>Confirmer la suppression</h2>
+            <p>Êtes-vous sûr de vouloir supprimer cette installation? Cette action est irréversible.</p>
+            <p><strong id="delete-refinery-name"></strong></p>
+            <div style="margin-top: 20px; text-align: right;">
+                <button id="delete-cancel" style="background-color: #ccc; color: #333;">Annuler</button>
+                <button id="delete-confirm" class="danger">Supprimer</button>
+            </div>
+            <input type="hidden" id="delete-id">
+        </div>
+    </div>
+    
+    <!-- Scripts intégrés pour éviter les problèmes de chargement -->
+    <script>
+    // Variables globales
+    let allData = null;
+    let refineries = [];
+    let currentId = null;
+    const STATUS_COLORS = {
+        "Opérationnel": "#00AA00",
+        "En construction": "#0000FF",
+        "Planifié": "#FFA500",
+        "Approuvé": "#FFA500",
+        "En suspens": "#FF0000",
+        "En pause": "#FF0000"
+    };
+    
+    // Initialisation de la page
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('Page chargée, initialisation...');
+        initTabs();
+        initButtons();
+        loadData();
+    });
+    
+    // Initialiser les onglets
+    function initTabs() {
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Désactiver tous les onglets
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Activer l'onglet cliqué
+                tab.classList.add('active');
+                const tabId = tab.getAttribute('data-tab');
+                document.getElementById(tabId + '-tab').classList.add('active');
+            });
+        });
+    }
+    
+    // Initialiser les boutons
+    function initButtons() {
+        // Onglet Tableau
+        document.getElementById('refresh-btn').addEventListener('click', loadData);
+        document.getElementById('save-changes-btn').addEventListener('click', saveAllChanges);
+        document.getElementById('increment-version-btn').addEventListener('click', incrementVersion);
+        document.getElementById('export-btn').addEventListener('click', exportData);
+        document.getElementById('add-installation-btn').addEventListener('click', addRefinery);
+        
+        // Import de fichier
+        document.getElementById('import-btn').addEventListener('click', () => {
+            document.getElementById('import-file').click();
+        });
+        document.getElementById('import-file').addEventListener('change', importFile);
+        
+        // Onglet Éditeur
+        document.getElementById('validate-btn').addEventListener('click', validateJson);
+        document.getElementById('apply-btn').addEventListener('click', applyJsonChanges);
+        document.getElementById('download-btn').addEventListener('click', downloadJson);
+        document.getElementById('reload-btn').addEventListener('click', reloadJson);
+        
+        // Filtres
+        document.getElementById('country-filter').addEventListener('change', filterRefineries);
+        document.getElementById('status-filter').addEventListener('change', filterRefineries);
+        document.getElementById('search-filter').addEventListener('input', filterRefineries);
+        
+        // Modal d'édition
+        document.getElementById('edit-form').addEventListener('submit', saveRefineryChanges);
+        document.getElementById('edit-cancel').addEventListener('click', () => {
+            document.getElementById('edit-modal').style.display = 'none';
+        });
+        document.getElementById('edit-modal-close').addEventListener('click', () => {
+            document.getElementById('edit-modal').style.display = 'none';
+        });
+        
+        // Modal de suppression
+        document.getElementById('delete-confirm').addEventListener('click', confirmDelete);
+        document.getElementById('delete-cancel').addEventListener('click', () => {
+            document.getElementById('delete-modal').style.display = 'none';
+        });
+        
+        // Fermer les modals en cliquant à l'extérieur
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none';
+            }
+        });
+    }
+    
+    // Charger les données
+    async function loadData() {
+        showNotification('table-notification', 'Chargement des données...', 'info');
+        
+        try {
+            // Ajouter un paramètre pour éviter le cache
+            const response = await fetch('data/refineries.json?t=' + Date.now());
+            if (!response.ok) {
+                throw new Error(`Erreur HTTP: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('Données chargées:', data);
+            
+            if (!data.refineries || !Array.isArray(data.refineries)) {
+                throw new Error('Format de données invalide: refineries manquantes ou non valides');
+            }
+            
+            // Stocker les données
+            allData = data;
+            refineries = data.refineries;
+            
+            // Mettre à jour les informations de version
+            document.getElementById('tableVersionInfo').textContent = `Version: ${data.version || 'non définie'}`;
+            document.getElementById('editorVersionInfo').textContent = `Version: ${data.version || 'non définie'}`;
+            
+            // Afficher les données dans le tableau
+            displayRefineries();
+            
+            // Charger dans l'éditeur JSON
+            document.getElementById('json-editor').value = JSON.stringify(data, null, 2);
+            
+            showNotification('table-notification', 'Données chargées avec succès!', 'success');
+            return true;
+        } catch (error) {
+            console.error('Erreur lors du chargement des données:', error);
+            showNotification('table-notification', `Erreur: ${error.message}. Essayez d'importer un fichier JSON.`, 'error');
+            
+            // Essayer de charger des données de secours
+            try {
+                const backupData = {
+                    version: "backup-" + new Date().toISOString().slice(0, 10),
+                    refineries: [
+                        {
+                            "id": 1,
+                            "name": "Example Refinery",
+                            "location": "Example Location",
+                            "country": "Canada",
+                            "coordinates": [45.5017, -73.5673],
+                            "status": "Opérationnel",
+                            "production": "Example Production",
+                            "processing": "Example Processing",
+                            "notes": "Exemple de données de secours",
+                            "website": "https://example.com"
+                        }
+                    ],
+                    status_colors: STATUS_COLORS
+                };
+                
+                allData = backupData;
+                refineries = backupData.refineries;
+                
+                // Afficher les données dans le tableau
+                displayRefineries();
+                
+                // Charger dans l'éditeur JSON
+                document.getElementById('json-editor').value = JSON.stringify(backupData, null, 2);
+                
+                showNotification('table-notification', 'Données de secours chargées. Importez un fichier JSON valide pour restaurer vos données.', 'warning');
+                return true;
+            } catch (backupError) {
+                console.error('Erreur lors du chargement des données de secours:', backupError);
+                return false;
+            }
+        }
+    }
+    
+    // Afficher les raffineries dans le tableau
+    function displayRefineries() {
+        const tableBody = document.getElementById('refineries-table-body');
+        tableBody.innerHTML = '';
+        
+        // Filtrer les données selon les critères actuels
+        const filteredRefineries = filterRefineries();
+        
+        if (filteredRefineries.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 15px;">Aucune installation trouvée</td></tr>';
+            return;
+        }
+        
+        // Tri par ID
+        filteredRefineries.sort((a, b) => a.id - b.id);
+        
+        // Ajouter chaque raffinerie au tableau
+        filteredRefineries.forEach(refinery => {
+            const row = document.createElement('tr');
+            
+            row.innerHTML = `
+                <td>${refinery.id || '-'}</td>
+                <td>${refinery.name || '-'}</td>
+                <td>${refinery.location || '-'}</td>
+                <td>${refinery.country || '-'}</td>
+                <td style="color: ${STATUS_COLORS[refinery.status] || '#000'}">${refinery.status || '-'}</td>
+                <td>${refinery.production || '-'}</td>
+                <td>${refinery.processing || '-'}</td>
+                <td class="action-buttons">
+                    <button onclick="editRefinery(${refinery.id})" class="edit-btn">Modifier</button>
+                    <button onclick="deleteRefinery(${refinery.id})" class="danger">Supprimer</button>
+                </td>
+            `;
+            
+            tableBody.appendChild(row);
+        });
+    }
+    
+    // Filtrer les raffineries selon les critères
+    function filterRefineries() {
+        // Si appelé comme gestionnaire d'événement, mettre à jour l'affichage
+        if (event && event.type) {
+            displayRefineries();
+            return;
+        }
+        
+        // Si appelé comme fonction, retourner les résultats filtrés
+        const countryFilter = document.getElementById('country-filter').value;
+        const statusFilter = document.getElementById('status-filter').value;
+        const searchFilter = document.getElementById('search-filter').value.toLowerCase();
+        
+        return refineries.filter(refinery => {
+            // Filtre par pays
+            if (countryFilter !== 'all' && refinery.country !== countryFilter) {
+                return false;
+            }
+            
+            // Filtre par statut
+            if (statusFilter !== 'all' && refinery.status !== statusFilter) {
+                return false;
+            }
+            
+            // Filtre par recherche
+            if (searchFilter) {
+                const name = (refinery.name || '').toLowerCase();
+                const location = (refinery.location || '').toLowerCase();
+                const country = (refinery.country || '').toLowerCase();
+                const status = (refinery.status || '').toLowerCase();
+                const production = (refinery.production || '').toLowerCase();
+                const processing = (refinery.processing || '').toLowerCase();
+                
+                return name.includes(searchFilter) || 
+                       location.includes(searchFilter) || 
+                       country.includes(searchFilter) || 
+                       status.includes(searchFilter) || 
+                       production.includes(searchFilter) || 
+                       processing.includes(searchFilter);
+            }
+            
+            return true;
+        });
+    }
+    
+    // Ajouter une nouvelle installation
+    function addRefinery() {
+        currentId = null;
+        
+        // Remplir le formulaire avec des valeurs par défaut
+        document.getElementById('edit-modal-title').textContent = 'Ajouter une installation';
+        document.getElementById('edit-id').value = '';
+        document.getElementById('edit-name').value = '';
+        document.getElementById('edit-location').value = '';
+        document.getElementById('edit-country').value = 'Canada';
+        document.getElementById('edit-coordinates').value = '';
+        document.getElementById('edit-status').value = 'Planifié';
+        document.getElementById('edit-production').value = '';
+        document.getElementById('edit-processing').value = '';
+        document.getElementById('edit-notes').value = '';
+        document.getElementById('edit-website').value = '';
+        
+        // Afficher la modal
+        document.getElementById('edit-modal').style.display = 'block';
+    }
+    
+    // Modifier une installation existante
+    function editRefinery(id) {
+        currentId = id;
+        
+        // Trouver l'installation à modifier
+        const refinery = refineries.find(r => r.id === id);
+        if (!refinery) {
+            showNotification('table-notification', `Installation avec ID ${id} non trouvée.`, 'error');
+            return;
+        }
+        
+        // Remplir le formulaire avec les valeurs existantes
+        document.getElementById('edit-modal-title').textContent = 'Modifier une installation';
+        document.getElementById('edit-id').value = refinery.id;
+        document.getElementById('edit-name').value = refinery.name || '';
+        document.getElementById('edit-location').value = refinery.location || '';
+        document.getElementById('edit-country').value = refinery.country || 'Canada';
+        document.getElementById('edit-coordinates').value = refinery.coordinates ? refinery.coordinates.join(', ') : '';
+        document.getElementById('edit-status').value = refinery.status || 'Planifié';
+        document.getElementById('edit-production').value = refinery.production || '';
+        document.getElementById('edit-processing').value = refinery.processing || '';
+        document.getElementById('edit-notes').value = refinery.notes || '';
+        document.getElementById('edit-website').value = refinery.website || '';
+        
+        // Afficher la modal
+        document.getElementById('edit-modal').style.display = 'block';
+    }
+    
+    // Supprimer une installation
+    function deleteRefinery(id) {
+        // Trouver l'installation à supprimer
+        const refinery = refineries.find(r => r.id === id);
+        if (!refinery) {
+            showNotification('table-notification', `Installation avec ID ${id} non trouvée.`, 'error');
+            return;
+        }
+        
+        // Remplir la modal de confirmation
+        document.getElementById('delete-refinery-name').textContent = refinery.name;
+        document.getElementById('delete-id').value = id;
+        
+        // Afficher la modal
+        document.getElementById('delete-modal').style.display = 'block';
+    }
+    
+    // Confirmer la suppression
+    function confirmDelete() {
+        const id = parseInt(document.getElementById('delete-id').value);
+        
+        // Trouver l'index de l'installation à supprimer
+        const index = refineries.findIndex(r => r.id === id);
+        if (index === -1) {
+            showNotification('table-notification', `Installation avec ID ${id} non trouvée.`, 'error');
+            return;
+        }
+        
+        // Supprimer l'installation
+        refineries.splice(index, 1);
+        
+        // Mettre à jour l'affichage
+        displayRefineries();
+        
+        // Mettre à jour l'éditeur JSON
+        if (allData) {
+            allData.refineries = refineries;
+            document.getElementById('json-editor').value = JSON.stringify(allData, null, 2);
+        }
+        
+        // Fermer la modal
+        document.getElementById('delete-modal').style.display = 'none';
+        
+        showNotification('table-notification', 'Installation supprimée avec succès.', 'success');
+    }
+    
+    // Sauvegarder les modifications d'une installation
+    function saveRefineryChanges(event) {
+        event.preventDefault();
+        
+        // Récupérer les valeurs du formulaire
+        const idValue = document.getElementById('edit-id').value;
+        const name = document.getElementById('edit-name').value;
+        const location = document.getElementById('edit-location').value;
+        const country = document.getElementById('edit-country').value;
+        const coordinatesStr = document.getElementById('edit-coordinates').value;
+        const status = document.getElementById('edit-status').value;
+        const production = document.getElementById('edit-production').value || 'N/A';
+        const processing = document.getElementById('edit-processing').value || 'N/A';
+        const notes = document.getElementById('edit-notes').value;
+        const website = document.getElementById('edit-website').value || '#';
+        
+        // Traiter les coordonnées
+        let coordinates = [0, 0];
+        if (coordinatesStr) {
+            const parts = coordinatesStr.split(',').map(part => parseFloat(part.trim()));
+            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                coordinates = parts;
+            }
+        }
+        
+        if (idValue) {
+            // Modification d'une installation existante
+            const id = parseInt(idValue);
+            const index = refineries.findIndex(r => r.id === id);
+            
+            if (index === -1) {
+                showNotification('table-notification', `Installation avec ID ${id} non trouvée.`, 'error');
+                return;
+            }
+            
+            refineries[index] = {
+                ...refineries[index],
+                name,
+                location,
+                country,
+                coordinates,
+                status,
+                production,
+                processing,
+                notes,
+                website
+            };
+            
+            showNotification('table-notification', 'Installation modifiée avec succès.', 'success');
+        } else {
+            // Ajout d'une nouvelle installation
+            const newId = Math.max(0, ...refineries.map(r => r.id)) + 1;
+            
+            refineries.push({
+                id: newId,
+                name,
+                location,
+                country,
+                coordinates,
+                status,
+                production,
+                processing,
+                notes,
+                website
+            });
+            
+            showNotification('table-notification', 'Installation ajoutée avec succès.', 'success');
+        }
+        
+        // Mettre à jour l'affichage
+        displayRefineries();
+        
+        // Mettre à jour l'éditeur JSON
+        if (allData) {
+            allData.refineries = refineries;
+            document.getElementById('json-editor').value = JSON.stringify(allData, null, 2);
+        }
+        
+        // Fermer la modal
+        document.getElementById('edit-modal').style.display = 'none';
+    }
+    
+    // Sauvegarder toutes les modifications
+    function saveAllChanges() {
+        try {
+            // Vérifier si les données sont valides
+            if (!allData || !Array.isArray(refineries)) {
+                showNotification('table-notification', 'Données non valides pour la sauvegarde.', 'error');
+                return;
+            }
+            
+            // Mettre à jour les données
+            allData.refineries = refineries;
+            
+            // Vérifier si la version est définie
+            if (!allData.version) {
+                allData.version = new Date().toISOString().slice(0, 10);
+            }
+            
+            // Vérifier si les couleurs de statut sont définies
+            if (!allData.status_colors) {
+                allData.status_colors = STATUS_COLORS;
+            }
+            
+            // Convertir en JSON et télécharger
+            const dataStr = JSON.stringify(allData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'refineries.json';
+            link.click();
+            
+            showNotification('table-notification', 'Données sauvegardées avec succès! Téléchargement du fichier refineries.json terminé.', 'success');
+        } catch (error) {
+            console.error('Erreur lors de la sauvegarde:', error);
+            showNotification('table-notification', `Erreur lors de la sauvegarde: ${error.message}`, 'error');
+        }
+    }
+    
+    // Incrémenter la version
+    function incrementVersion() {
+        try {
+            if (!allData) {
+                showNotification('table-notification', 'Données non disponibles pour l\'incrémentation de version.', 'error');
+                return;
+            }
+            
+            const currentDate = new Date();
+            const formattedDate = currentDate.toISOString().slice(0, 10);
+            
+            // Vérifier si la date est la même que celle de la version actuelle
+            const currentVersion = allData.version || '';
+            let newVersion;
+            
+            if (currentVersion.startsWith(formattedDate)) {
+                // Incrémenter la version pour la même date
+                const versionParts = currentVersion.split('-v');
+                const versionNumber = versionParts.length > 1 ? parseInt(versionParts[1]) || 0 : 0;
+                newVersion = `${formattedDate}-v${versionNumber + 1}`;
+            } else {
+                // Nouvelle date, commencer à v1
+                newVersion = `${formattedDate}-v1`;
+            }
+            
+            // Mettre à jour la version
+            allData.version = newVersion;
+            
+            // Mettre à jour les affichages
+            document.getElementById('tableVersionInfo').textContent = `Version: ${newVersion}`;
+            document.getElementById('editorVersionInfo').textContent = `Version: ${newVersion}`;
+            
+            // Mettre à jour l'éditeur JSON
+            document.getElementById('json-editor').value = JSON.stringify(allData, null, 2);
+            
+            showNotification('table-notification', `Version incrémentée à ${newVersion}`, 'success');
+        } catch (error) {
+            console.error('Erreur lors de l\'incrémentation de la version:', error);
+            showNotification('table-notification', `Erreur: ${error.message}`, 'error');
+        }
+    }
+    
+    // Exporter les données
+    function exportData() {
+        try {
+            // Vérifier si les données sont valides
+            if (!allData) {
+                showNotification('table-notification', 'Données non disponibles pour l\'exportation.', 'error');
+                return;
+            }
+            
+            // Convertir en JSON et télécharger
+            const dataStr = JSON.stringify(allData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            link.download = `recyclage_batteries_ve_${timestamp}.json`;
+            link.click();
+            
+            showNotification('table-notification', 'Données exportées avec succès!', 'success');
+        } catch (error) {
+            console.error('Erreur lors de l\'exportation:', error);
+            showNotification('table-notification', `Erreur: ${error.message}`, 'error');
+        }
+    }
+    
+    // Importer un fichier JSON
+    function importFile(event) {
+        const file = event.target.files[0];
+        if (!file) {
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                
+                // Vérifier si le format est correct
+                if (!data.refineries || !Array.isArray(data.refineries)) {
+                    throw new Error('Format de fichier invalide: refineries manquantes ou non valides');
+                }
+                
+                // Mettre à jour les données
+                allData = data;
+                refineries = data.refineries;
+                
+                // Mettre à jour les informations de version
+                const version = data.version || new Date().toISOString().slice(0, 10);
+                document.getElementById('tableVersionInfo').textContent = `Version: ${version}`;
+                document.getElementById('editorVersionInfo').textContent = `Version: ${version}`;
+                
+                // Mettre à jour l'affichage
+                displayRefineries();
+                
+                // Mettre à jour l'éditeur JSON
+                document.getElementById('json-editor').value = JSON.stringify(data, null, 2);
+                
+                showNotification('table-notification', 'Fichier importé avec succès!', 'success');
+            } catch (error) {
+                console.error('Erreur lors de l\'importation:', error);
+                showNotification('table-notification', `Erreur: ${error.message}`, 'error');
+            }
+        };
+        reader.readAsText(file);
+        
+        // Réinitialiser l'input file pour permettre une nouvelle importation du même fichier
+        event.target.value = '';
+    }
+    
+    // Valider le JSON dans l'éditeur
+    function validateJson() {
+        const jsonText = document.getElementById('json-editor').value;
+        const validatorElement = document.getElementById('json-validator');
+        
+        try {
+            const data = JSON.parse(jsonText);
+            
+            // Vérifier si le format est correct
+            if (!data.refineries || !Array.isArray(data.refineries)) {
+                throw new Error('Format de données invalide: refineries manquantes ou non valides');
+            }
+            
+            validatorElement.textContent = 'JSON valide!';
+            validatorElement.style.color = '#27ae60';
+            
+            // Activer le bouton d'application
+            document.getElementById('apply-btn').disabled = false;
+            
+            showNotification('editor-notification', 'JSON valide!', 'success');
+        } catch (error) {
+            validatorElement.textContent = `Erreur: ${error.message}`;
+            validatorElement.style.color = '#e74c3c';
+            
+            // Désactiver le bouton d'application
+            document.getElementById('apply-btn').disabled = true;
+            
+            showNotification('editor-notification', `Erreur: ${error.message}`, 'error');
+        }
+    }
+    
+    // Appliquer les modifications depuis l'éditeur JSON
+    function applyJsonChanges() {
+        const jsonText = document.getElementById('json-editor').value;
+        
+        try {
+            const data = JSON.parse(jsonText);
+            
+            // Vérifier si le format est correct
+            if (!data.refineries || !Array.isArray(data.refineries)) {
+                throw new Error('Format de données invalide: refineries manquantes ou non valides');
+            }
+            
+            // Mettre à jour les données
+            allData = data;
+            refineries = data.refineries;
+            
+            // Mettre à jour les informations de version
+            const version = data.version || 'non définie';
+            document.getElementById('tableVersionInfo').textContent = `Version: ${version}`;
+            document.getElementById('editorVersionInfo').textContent = `Version: ${version}`;
+            
+            // Mettre à jour l'affichage
+            displayRefineries();
+            
+            showNotification('editor-notification', 'Modifications appliquées avec succès!', 'success');
+        } catch (error) {
+            console.error('Erreur lors de l\'application des modifications:', error);
+            showNotification('editor-notification', `Erreur: ${error.message}`, 'error');
+        }
+    }
+    
+    // Télécharger le JSON depuis l'éditeur
+    function downloadJson() {
+        const jsonText = document.getElementById('json-editor').value;
+        
+        try {
+            // Vérifier si le JSON est valide
+            JSON.parse(jsonText);
+            
+            // Télécharger le fichier
+            const dataBlob = new Blob([jsonText], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            link.download = `refineries_${timestamp}.json`;
+            link.click();
+            
+            showNotification('editor-notification', 'JSON téléchargé avec succès!', 'success');
+        } catch (error) {
+            console.error('Erreur lors du téléchargement du JSON:', error);
+            showNotification('editor-notification', `Erreur: ${error.message}`, 'error');
+        }
+    }
+    
+    // Recharger le JSON depuis le fichier
+    function reloadJson() {
+        try {
+            // Recharger les données
+            loadData().then(success => {
+                if (success) {
+                    showNotification('editor-notification', 'JSON rechargé avec succès depuis le fichier!', 'success');
+                }
+            });
+        } catch (error) {
+            console.error('Erreur lors du rechargement du JSON:', error);
+            showNotification('editor-notification', `Erreur: ${error.message}`, 'error');
+        }
+    }
+    
+    // Afficher une notification
+    function showNotification(elementId, message, type) {
+        const element = document.getElementById(elementId);
+        if (!element) {
+            console.error(`Élément de notification '${elementId}' non trouvé!`);
+            return;
+        }
+        
+        // Définir le type de notification
+        let notificationType = 'info';
+        switch (type) {
+            case 'success':
+                notificationType = 'success';
+                break;
+            case 'error':
+                notificationType = 'error';
+                break;
+            case 'warning':
+                notificationType = 'warning';
+                break;
+        }
+        
+        // Appliquer les classes
+        element.className = `notification ${notificationType}`;
+        element.textContent = message;
+        element.style.display = 'block';
+        
+        // Masquer la notification après 5 secondes
+        setTimeout(() => {
+            element.style.display = 'none';
+        }, 5000);
+    }
+    
+    // Rendre les fonctions disponibles globalement
+    window.editRefinery = editRefinery;
+    window.deleteRefinery = deleteRefinery;
+    </script>
+</body>
+</html>
