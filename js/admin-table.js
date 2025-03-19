@@ -6,6 +6,51 @@ let currentId = null;
 // Charger les données des installations
 async function loadRefineryData() {
     try {
+        // Essayer d'abord de charger les données depuis localStorage
+        const savedData = localStorage.getItem('lithiumRefineries');
+        
+        if (savedData) {
+            try {
+                refineries = JSON.parse(savedData);
+                console.log('Données chargées depuis localStorage');
+                
+                // Charger le fichier JSON juste pour récupérer la version et les couleurs
+                const response = await fetch('data/refineries.json');
+                if (response.ok) {
+                    refineryData = await response.json();
+                    refineryData.refineries = refineries; // Remplacer par nos données à jour
+                } else {
+                    // Si le fichier JSON n'est pas accessible, créer un objet de données minimal
+                    refineryData = {
+                        version: localStorage.getItem('dashboardVersion') || 'locale',
+                        refineries: refineries,
+                        status_colors: STATUS_COLORS || {
+                            "Opérationnel": "#00AA00",
+                            "En construction": "#0000FF",
+                            "Planifié": "#FFA500",
+                            "Approuvé": "#FFA500",
+                            "En suspens": "#FF0000",
+                            "En pause": "#FF0000"
+                        }
+                    };
+                }
+                
+                // Mettre à jour les informations de version
+                const versionText = `Version actuelle: ${refineryData.version || 'locale'}`;
+                document.getElementById('tableVersionInfo').textContent = versionText;
+                
+                // Afficher le tableau des installations
+                displayRefineryTable();
+                
+                showNotification(document.getElementById('table-notification'), 'Données chargées avec succès depuis localStorage!', 'success');
+                return true;
+            } catch (e) {
+                console.error('Erreur lors du chargement des données locales:', e);
+                // En cas d'erreur, on charge depuis le fichier JSON
+            }
+        }
+        
+        // Si pas de données dans localStorage ou erreur, charger depuis le fichier JSON
         const response = await fetch('data/refineries.json');
         if (!response.ok) {
             throw new Error(`Erreur HTTP: ${response.status}`);
@@ -13,6 +58,10 @@ async function loadRefineryData() {
         
         refineryData = await response.json();
         refineries = refineryData.refineries;
+        
+        // Sauvegarder dans localStorage pour être synchronisé avec le dashboard
+        localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
+        localStorage.setItem('lastDataUpdateTimestamp', Date.now().toString());
         
         // Mettre à jour les informations de version
         const versionText = `Version actuelle: ${refineryData.version || 'non définie'}`;
@@ -194,6 +243,15 @@ function confirmDelete() {
     // Supprimer l'installation
     refineries.splice(index, 1);
     
+    // Sauvegarder dans localStorage pour synchroniser avec le dashboard
+    localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
+    localStorage.setItem('lastDataUpdateTimestamp', Date.now().toString());
+    
+    // Signaler le changement si la fonction est disponible
+    if (typeof window.signalDataChange === 'function') {
+        window.signalDataChange();
+    }
+    
     // Mettre à jour le tableau
     displayRefineryTable();
     
@@ -263,6 +321,15 @@ function saveRefineryChanges(e) {
         showNotification(document.getElementById('table-notification'), 'Installation ajoutée avec succès', 'success');
     }
     
+    // Sauvegarder dans localStorage pour synchroniser avec le dashboard
+    localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
+    localStorage.setItem('lastDataUpdateTimestamp', Date.now().toString());
+    
+    // Signaler le changement si la fonction est disponible
+    if (typeof window.signalDataChange === 'function') {
+        window.signalDataChange();
+    }
+    
     // Mettre à jour le tableau et fermer la modal
     displayRefineryTable();
     document.getElementById('edit-modal').style.display = 'none';
@@ -278,6 +345,15 @@ async function saveAllChanges() {
     try {
         // Mettre à jour les données
         refineryData.refineries = refineries;
+        
+        // Sauvegarder dans localStorage pour synchroniser avec le dashboard
+        localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
+        localStorage.setItem('lastDataUpdateTimestamp', Date.now().toString());
+        
+        // Signaler le changement si la fonction est disponible
+        if (typeof window.signalDataChange === 'function') {
+            window.signalDataChange();
+        }
         
         // Convertir en JSON
         const dataStr = JSON.stringify(refineryData, null, 2);
@@ -323,6 +399,9 @@ function incrementVersion() {
         
         refineryData.version = newVersion;
         document.getElementById('tableVersionInfo').textContent = `Version actuelle: ${newVersion}`;
+        
+        // Mettre à jour la version dans localStorage
+        localStorage.setItem('dashboardVersion', newVersion);
         
         showNotification(document.getElementById('table-notification'), `Version incrémentée à ${newVersion}`, 'success');
     } catch (error) {
