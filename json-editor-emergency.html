@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Éditeur JSON d'Urgence - Lithium Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 500px;
+            font-family: monospace;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .success {
+            background: #2ecc71;
+        }
+        .success:hover {
+            background: #27ae60;
+        }
+        .danger {
+            background: #e74c3c;
+        }
+        .danger:hover {
+            background: #c0392b;
+        }
+        .notification {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        .notification.success {
+            background: #d5f5e3;
+            border: 1px solid #2ecc71;
+            color: #27ae60;
+        }
+        .notification.error {
+            background: #f5d5d5;
+            border: 1px solid #e74c3c;
+            color: #c0392b;
+        }
+        .jsonError {
+            color: #e74c3c;
+            margin-top: 10px;
+            font-family: monospace;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .instruction {
+            margin-bottom: 5px;
+        }
+        .file-input {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Éditeur JSON d'Urgence - Lithium Dashboard</h1>
+    
+    <div class="info-box">
+        <p><strong>Éditeur indépendant pour le fichier refineries.json</strong></p>
+        <p>Cette page vous permet de:</p>
+        <ol>
+            <li class="instruction">Charger le fichier JSON directement depuis le serveur</li>
+            <li class="instruction">Importer un fichier JSON depuis votre ordinateur</li>
+            <li class="instruction">Éditer manuellement le contenu JSON</li>
+            <li class="instruction">Valider la syntaxe JSON</li>
+            <li class="instruction">Télécharger le fichier JSON modifié</li>
+            <li class="instruction">Télécharger un backup automatique du fichier</li>
+        </ol>
+    </div>
+    
+    <div class="file-input">
+        <label for="file-upload">Importer un fichier JSON:</label>
+        <input type="file" id="file-upload" accept=".json">
+    </div>
+    
+    <div class="controls">
+        <button id="load-btn">Charger depuis le serveur</button>
+        <button id="validate-btn">Valider JSON</button>
+        <button id="download-btn" class="success">Télécharger JSON</button>
+        <button id="backup-btn">Créer Backup</button>
+        <button id="dashboard-btn">Voir Dashboard</button>
+    </div>
+    
+    <div id="notification" class="notification"></div>
+    <div id="jsonError" class="jsonError"></div>
+    
+    <div class="container">
+        <textarea id="jsonEditor" placeholder="Le contenu JSON apparaîtra ici..."></textarea>
+    </div>
+    
+    <script>
+        // Éléments DOM
+        const jsonEditor = document.getElementById('jsonEditor');
+        const loadBtn = document.getElementById('load-btn');
+        const validateBtn = document.getElementById('validate-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const backupBtn = document.getElementById('backup-btn');
+        const dashboardBtn = document.getElementById('dashboard-btn');
+        const fileUpload = document.getElementById('file-upload');
+        const notification = document.getElementById('notification');
+        const jsonError = document.getElementById('jsonError');
+        
+        // Charger le JSON depuis le serveur
+        loadBtn.addEventListener('click', async () => {
+            try {
+                // Ajouter un paramètre anti-cache
+                const response = await fetch('data/refineries.json?nocache=' + Date.now());
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                jsonEditor.value = JSON.stringify(data, null, 2);
+                showNotification('Données chargées avec succès!', 'success');
+                
+                // Créer automatiquement un backup
+                createBackup(data);
+            } catch (error) {
+                showNotification(`Erreur lors du chargement: ${error.message}`, 'error');
+            }
+        });
+        
+        // Valider le JSON
+        validateBtn.addEventListener('click', () => {
+            try {
+                const jsonContent = jsonEditor.value;
+                JSON.parse(jsonContent);
+                jsonError.textContent = '';
+                showNotification('JSON valide!', 'success');
+            } catch (error) {
+                jsonError.textContent = `Erreur de syntaxe: ${error.message}`;
+                showNotification('JSON invalide. Voir les détails ci-dessous.', 'error');
+            }
+        });
+        
+        // Télécharger le JSON
+        downloadBtn.addEventListener('click', () => {
+            try {
+                const jsonContent = jsonEditor.value;
+                const jsonObj = JSON.parse(jsonContent); // Valider d'abord
+                
+                const blob = new Blob([JSON.stringify(jsonObj, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'refineries.json';
+                a.click();
+                
+                URL.revokeObjectURL(url);
+                showNotification('Fichier téléchargé avec succès!', 'success');
+            } catch (error) {
+                showNotification(`Erreur lors du téléchargement: ${error.message}`, 'error');
+            }
+        });
+        
+        // Créer un backup
+        backupBtn.addEventListener('click', () => {
+            try {
+                const jsonContent = jsonEditor.value;
+                const jsonObj = JSON.parse(jsonContent); // Valider d'abord
+                createBackup(jsonObj);
+            } catch (error) {
+                showNotification(`Erreur lors de la création du backup: ${error.message}`, 'error');
+            }
+        });
+        
+        // Fonction pour créer un backup
+        function createBackup(data) {
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `refineries_backup_${timestamp}.json`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            showNotification('Backup créé avec succès!', 'success');
+        }
+        
+        // Importer un fichier
+        fileUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const content = e.target.result;
+                    const json = JSON.parse(content); // Valider
+                    jsonEditor.value = JSON.stringify(json, null, 2);
+                    showNotification(`Fichier "${file.name}" importé avec succès!`, 'success');
+                } catch (error) {
+                    showNotification(`Erreur lors de l'importation: ${error.message}`, 'error');
+                }
+            };
+            reader.onerror = () => {
+                showNotification("Erreur lors de la lecture du fichier", 'error');
+            };
+            reader.readAsText(file);
+        });
+        
+        // Rediriger vers le dashboard
+        dashboardBtn.addEventListener('click', () => {
+            window.open('index.html', '_blank');
+        });
+        
+        // Afficher une notification
+        function showNotification(message, type) {
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.style.display = 'block';
+            
+            // Cacher après 5 secondes
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Charger automatiquement au démarrage
+        document.addEventListener('DOMContentLoaded', () => {
+            loadBtn.click();
+        });
+    </script>
+</body>
+</html>
