@@ -319,7 +319,7 @@
             max-height: 200px;
             overflow: auto;
             z-index: 9999;
-            display: none;
+            display: none; /* Caché par défaut */
         }
     </style>
 </head>
@@ -611,8 +611,8 @@
     const DASHBOARD_DATA_KEY = 'lithium_dashboard_data';
     const DASHBOARD_VERSION_KEY = 'lithium_dashboard_version';
     
-    // Fonction pour le debugging
-    const DEBUG = true;
+    // Fonction pour le debugging - DÉSACTIVÉ
+    const DEBUG = false; // Changé à false pour désactiver la fenêtre de debug
     function debug(message, obj) {
         if (!DEBUG) return;
         
@@ -915,7 +915,7 @@
             localStorage.setItem(DASHBOARD_DATA_KEY, JSON.stringify(data));
             localStorage.setItem(DASHBOARD_VERSION_KEY, data.version || '1.0');
             
-            // Stocker dans localStorage
+            // Stocker dans localStorage pour compatibilité
             localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
             
             showNotification('table-notification', 'Données chargées avec succès!', 'success');
@@ -1349,6 +1349,16 @@
             
             debug('Données sauvegardées avec succès');
             showNotification('table-notification', 'Données enregistrées avec succès! Votre dashboard est maintenant à jour.', 'success');
+            
+            // Force d'actualiser le dashboard s'il est ouvert dans d'autres onglets
+            try {
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem('force_dashboard_refresh', Date.now().toString());
+                }
+            } catch (e) {
+                console.error('Erreur lors de la notification aux autres onglets:', e);
+            }
+            
         } catch (error) {
             console.error('Erreur lors de la sauvegarde:', error);
             debug('Erreur lors de la sauvegarde', error);
