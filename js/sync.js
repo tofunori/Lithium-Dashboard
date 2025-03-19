@@ -10,6 +10,7 @@ const DATA_KEY = 'lithiumRefineries';
 
 // Variable pour suivre la dernière mise à jour connue
 let lastKnownUpdate = Date.now();
+let isSyncActive = false; // Éviter les boucles infinies
 
 // Initialisation: enregistrer l'écouteur d'événements storage
 window.addEventListener('storage', function(event) {
@@ -22,6 +23,10 @@ window.addEventListener('storage', function(event) {
 
 // Fonction pour synchroniser les données depuis le localStorage
 function syncData() {
+    // Éviter les boucles de synchronisation
+    if (isSyncActive) return;
+    isSyncActive = true;
+    
     try {
         // Charger les données à jour depuis le localStorage
         const syncData = localStorage.getItem(SYNC_KEY);
@@ -46,7 +51,7 @@ function syncData() {
                         window.updateDashboard();
                         console.log('✅ Dashboard mis à jour avec succès!');
                     } else {
-                        console.error('❌ La fonction updateDashboard n\'est pas disponible');
+                        console.log('⚠️ La fonction updateDashboard n\'est pas disponible');
                         // Tentative de mise à jour alternative
                         triggerUpdate();
                     }
@@ -57,6 +62,8 @@ function syncData() {
         }
     } catch (error) {
         console.error('❌ Erreur lors de la synchronisation:', error);
+    } finally {
+        isSyncActive = false;
     }
 }
 
@@ -116,68 +123,50 @@ function triggerUpdate() {
     }
 }
 
-// Vérifier les mises à jour périodiquement (toutes les 1.5 secondes)
-setInterval(syncData, 1500);
+// Ne pas perturber le chargement initial des données
+let initialLoadComplete = false;
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Script de synchronisation initialisé - attente du chargement initial des données');
+    
+    // Attendre que le chargement initial soit terminé
+    setTimeout(() => {
+        initialLoadComplete = true;
+        console.log('📋 Chargement initial supposé terminé, synchronisation activée');
+    }, 2000);
+});
 
-// Remplacer la fonction saveData standard pour qu'elle déclenche la synchronisation
+// Vérifier les mises à jour périodiquement (toutes les 2 secondes), mais seulement après le chargement initial
+setInterval(() => {
+    if (initialLoadComplete) {
+        syncData();
+    }
+}, 2000);
+
+// Ne pas perturber les fonctions existantes
 const originalSaveData = window.saveData;
 window.saveData = function() {
     // Appeler la fonction originale si elle existe
+    let result;
     if (typeof originalSaveData === 'function') {
-        originalSaveData.apply(this, arguments);
+        result = originalSaveData.apply(this, arguments);
     } else {
         // Sinon, enregistrer directement les données
-        localStorage.setItem(DATA_KEY, JSON.stringify(window.refineries));
+        localStorage.setItem(DATA_KEY, JSON.stringify(window.refineries || []));
     }
     
-    // Signaler le changement pour les autres pages
-    signalDataChange();
-    
-    // Mettre à jour l'affichage actuel
-    if (typeof window.updateDashboard === 'function') {
-        window.updateDashboard();
-    } else {
-        triggerUpdate();
+    // Ne pas signaler les changements pendant le chargement initial
+    if (initialLoadComplete) {
+        // Signaler le changement pour les autres pages
+        signalDataChange();
     }
+    
+    return result;
 };
 
 // Écouter l'événement personnalisé
 document.addEventListener('dashboard_data_updated', function(event) {
     console.log('🔔 Événement de mise à jour reçu:', event.detail);
     syncData();
-});
-
-// Synchroniser les données au chargement de la page
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Script de synchronisation initialisé');
-    
-    // Synchroniser une première fois
-    setTimeout(syncData, 500);
-    
-    // Ajouter un indicateur visuel pour confirmer que le script est chargé
-    const syncIndicator = document.createElement('div');
-    syncIndicator.style.position = 'fixed';
-    syncIndicator.style.bottom = '5px';
-    syncIndicator.style.right = '5px';
-    syncIndicator.style.width = '10px';
-    syncIndicator.style.height = '10px';
-    syncIndicator.style.borderRadius = '50%';
-    syncIndicator.style.backgroundColor = '#4CAF50';
-    syncIndicator.style.zIndex = '9999';
-    syncIndicator.title = 'Synchronisation active';
-    document.body.appendChild(syncIndicator);
-    
-    // Faire clignoter l'indicateur lors des mises à jour
-    const originalSignalDataChange = signalDataChange;
-    window.signalDataChange = function() {
-        originalSignalDataChange();
-        
-        // Effet visuel: clignotement
-        syncIndicator.style.backgroundColor = '#FFC107';
-        setTimeout(() => {
-            syncIndicator.style.backgroundColor = '#4CAF50';
-        }, 300);
-    };
 });
 
 // Exposer les fonctions de synchronisation dans l'espace global
