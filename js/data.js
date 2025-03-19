@@ -7,6 +7,8 @@ let lastDataUpdateTimestamp = 0;
 // Fonction pour charger les données depuis le fichier JSON
 async function loadData() {
     try {
+        console.log('Tentative de chargement des données...');
+        
         // Récupérer les données depuis le fichier JSON
         const response = await fetch('data/refineries.json');
         if (!response.ok) {
@@ -14,41 +16,40 @@ async function loadData() {
         }
         
         const jsonData = await response.json();
+        console.log('Données JSON chargées:', jsonData);
         
         // Stocker la version dans localStorage pour le cache-buster
         const currentVersion = localStorage.getItem('dashboardVersion');
         if (currentVersion !== jsonData.version) {
+            console.log(`Nouvelle version détectée: ${jsonData.version} (actuelle: ${currentVersion})`);
             localStorage.clear();
             localStorage.setItem('dashboardVersion', jsonData.version);
         }
         
-        // Charger les données dans le localStorage pour les utiliser hors-ligne
-        // ou pour les modifications temporaires par l'utilisateur
-        const savedData = localStorage.getItem('lithiumRefineries');
-        if (savedData) {
-            try {
-                refineries = JSON.parse(savedData);
-                // Stocker un timestamp de la dernière mise à jour connue
-                lastDataUpdateTimestamp = parseInt(localStorage.getItem('lastDataUpdateTimestamp') || Date.now());
-            } catch (e) {
-                console.error('Erreur lors du chargement des données locales:', e);
-                refineries = jsonData.refineries;
-                localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
-                lastDataUpdateTimestamp = Date.now();
-                localStorage.setItem('lastDataUpdateTimestamp', lastDataUpdateTimestamp);
-            }
-        } else {
-            refineries = jsonData.refineries;
-            localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
-            lastDataUpdateTimestamp = Date.now();
-            localStorage.setItem('lastDataUpdateTimestamp', lastDataUpdateTimestamp);
+        // Vérifier si les refineries existent dans les données JSON
+        if (!jsonData.refineries || !Array.isArray(jsonData.refineries)) {
+            throw new Error('Format de données invalide: refineries manquants ou non valides');
         }
         
-        // Charger les couleurs pour les statuts et les graphiques
-        STATUS_COLORS = jsonData.status_colors;
-        CHART_COLORS = jsonData.chart_colors;
+        // Charger les données
+        refineries = jsonData.refineries;
+        localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
+        lastDataUpdateTimestamp = Date.now();
+        localStorage.setItem('lastDataUpdateTimestamp', lastDataUpdateTimestamp);
         
-        console.log('Données chargées avec succès depuis refineries.json');
+        // Charger les couleurs pour les statuts et les graphiques
+        STATUS_COLORS = jsonData.status_colors || {
+            "Opérationnel": "#00AA00",
+            "En construction": "#0000FF",
+            "Planifié": "#FFA500",
+            "Approuvé": "#FFA500",
+            "En suspens": "#FF0000",
+            "En pause": "#FF0000"
+        };
+        
+        CHART_COLORS = jsonData.chart_colors || ["#4a6bff", "#ff7043", "#ffca28", "#66bb6a", "#ab47bc"];
+        
+        console.log('Données chargées avec succès - Nombre d\'installations:', refineries.length);
         
         // Configurer la vérification périodique des mises à jour
         setupDataSyncCheck();
@@ -63,15 +64,69 @@ async function loadData() {
             try {
                 refineries = JSON.parse(savedData);
                 lastDataUpdateTimestamp = parseInt(localStorage.getItem('lastDataUpdateTimestamp') || Date.now());
-                console.log('Données chargées depuis localStorage (mode hors-ligne)');
+                console.log('Données chargées depuis localStorage (mode hors-ligne):', refineries.length, 'installations');
                 
                 // Configurer la vérification périodique des mises à jour
                 setupDataSyncCheck();
                 
                 return true;
-            } catch (e) {
-                console.error('Erreur lors du chargement des données locales:', e);
+            } catch (localError) {
+                console.error('Erreur lors du chargement des données locales:', localError);
             }
+        }
+        
+        // Si aucun localStorage disponible, essayons de charger les données de secours
+        try {
+            console.log('Tentative de chargement des données de secours...');
+            
+            // Utiliser les données de secours codées en dur
+            refineries = [
+                {
+                    "id": 1,
+                    "name": "Li-Cycle",
+                    "location": "Kingston, Ontario, Canada",
+                    "country": "Canada",
+                    "coordinates": [44.2312, -76.4860],
+                    "status": "Opérationnel",
+                    "production": "10 000+ tonnes de masse noire par an",
+                    "processing": "Spoke & Hub Technologies - Procédé hydrométallurgique",
+                    "notes": "Produit de la masse noire à partir de batteries lithium-ion usagées, hub aux États-Unis en pause.",
+                    "website": "https://li-cycle.com/"
+                },
+                {
+                    "id": 2,
+                    "name": "Lithion Technologies",
+                    "location": "Saint-Bruno-de-Montarville, Québec, Canada",
+                    "country": "Canada",
+                    "coordinates": [45.5366, -73.3718],
+                    "status": "Opérationnel",
+                    "production": "10 000-20 000 tonnes de batteries par an",
+                    "processing": "Procédé hydrométallurgique en deux étapes",
+                    "notes": "Produit de la masse noire, usine d'hydrométallurgie pour matériaux avancés prévue pour 2026.",
+                    "website": "https://www.lithiontechnologies.com/"
+                }
+            ];
+            
+            STATUS_COLORS = {
+                "Opérationnel": "#00AA00",
+                "En construction": "#0000FF",
+                "Planifié": "#FFA500",
+                "Approuvé": "#FFA500",
+                "En suspens": "#FF0000",
+                "En pause": "#FF0000"
+            };
+            
+            CHART_COLORS = ["#4a6bff", "#ff7043", "#ffca28", "#66bb6a", "#ab47bc"];
+            
+            // Sauvegarder dans localStorage
+            localStorage.setItem('lithiumRefineries', JSON.stringify(refineries));
+            lastDataUpdateTimestamp = Date.now();
+            localStorage.setItem('lastDataUpdateTimestamp', lastDataUpdateTimestamp);
+            
+            console.log('Données de secours chargées:', refineries.length, 'installations');
+            return true;
+        } catch (backupError) {
+            console.error('Échec du chargement des données de secours:', backupError);
         }
         
         // Si toutes les tentatives échouent, afficher un message d'erreur
@@ -195,9 +250,9 @@ function checkForDataUpdates() {
 
 // Fonction pour filtrer les installations
 function filterRefineries() {
-    const country = document.getElementById('country-filter').value;
-    const status = document.getElementById('status-filter').value;
-    const minCapacity = parseInt(document.getElementById('capacity-filter').value) || 0;
+    const country = document.getElementById('country-filter')?.value || 'all';
+    const status = document.getElementById('status-filter')?.value || 'all';
+    const minCapacity = parseInt(document.getElementById('capacity-filter')?.value || '0') || 0;
     
     return refineries.filter(refinery => {
         if (country !== 'all' && refinery.country !== country) {
@@ -255,9 +310,14 @@ function exportJSON() {
 // Génération d'un lien de partage avec les filtres appliqués
 function generateShareLink() {
     const url = new URL(window.location.href);
-    url.searchParams.set('country', document.getElementById('country-filter').value);
-    url.searchParams.set('status', document.getElementById('status-filter').value);
-    url.searchParams.set('capacity', document.getElementById('capacity-filter').value);
+    const countryFilter = document.getElementById('country-filter');
+    const statusFilter = document.getElementById('status-filter');
+    const capacityFilter = document.getElementById('capacity-filter');
+    
+    if (countryFilter) url.searchParams.set('country', countryFilter.value);
+    if (statusFilter) url.searchParams.set('status', statusFilter.value);
+    if (capacityFilter) url.searchParams.set('capacity', capacityFilter.value);
+    
     return url.toString();
 }
 
@@ -265,16 +325,21 @@ function generateShareLink() {
 function applyUrlFilters() {
     const params = new URLSearchParams(window.location.search);
     
-    if (params.has('country')) {
-        document.getElementById('country-filter').value = params.get('country');
+    const countryFilter = document.getElementById('country-filter');
+    const statusFilter = document.getElementById('status-filter');
+    const capacityFilter = document.getElementById('capacity-filter');
+    const capacityValue = document.getElementById('capacity-value');
+    
+    if (params.has('country') && countryFilter) {
+        countryFilter.value = params.get('country');
     }
-    if (params.has('status')) {
-        document.getElementById('status-filter').value = params.get('status');
+    if (params.has('status') && statusFilter) {
+        statusFilter.value = params.get('status');
     }
-    if (params.has('capacity')) {
+    if (params.has('capacity') && capacityFilter) {
         const capacity = params.get('capacity');
-        document.getElementById('capacity-filter').value = capacity;
-        document.getElementById('capacity-value').textContent = capacity;
+        capacityFilter.value = capacity;
+        if (capacityValue) capacityValue.textContent = capacity;
     }
 }
 
@@ -295,18 +360,28 @@ if (typeof window.updateDashboard === 'undefined' && typeof updateDashboard === 
 
 // Initialisation de l'application
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM chargé, initialisation de l\'application...');
+    
     loadData().then((success) => {
         if (success) {
+            console.log('Application initialisée avec succès');
             applyUrlFilters();
             updateDisplay();
 
             // Ajouter des écouteurs d'événements pour les filtres
-            document.getElementById('country-filter').addEventListener('change', updateDisplay);
-            document.getElementById('status-filter').addEventListener('change', updateDisplay);
-            document.getElementById('capacity-filter').addEventListener('input', () => {
-                document.getElementById('capacity-value').textContent = document.getElementById('capacity-filter').value;
-                updateDisplay();
-            });
+            const countryFilter = document.getElementById('country-filter');
+            const statusFilter = document.getElementById('status-filter');
+            const capacityFilter = document.getElementById('capacity-filter');
+            
+            if (countryFilter) countryFilter.addEventListener('change', updateDisplay);
+            if (statusFilter) statusFilter.addEventListener('change', updateDisplay);
+            if (capacityFilter) {
+                capacityFilter.addEventListener('input', () => {
+                    const capacityValue = document.getElementById('capacity-value');
+                    if (capacityValue) capacityValue.textContent = capacityFilter.value;
+                    updateDisplay();
+                });
+            }
             
             // Vérifier si ces éléments existent avant d'ajouter des écouteurs
             const exportBtn = document.getElementById('export-btn');
