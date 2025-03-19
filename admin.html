@@ -607,6 +607,10 @@
 
     <!-- Scripts intégrés pour éviter les problèmes de chargement -->
     <script>
+    // Constants for storage
+    const DASHBOARD_DATA_KEY = 'lithium_dashboard_data';
+    const DASHBOARD_VERSION_KEY = 'lithium_dashboard_version';
+    
     // Fonction pour le debugging
     const DEBUG = true;
     function debug(message, obj) {
@@ -846,6 +850,39 @@
         showNotification('table-notification', 'Chargement des données...', 'info');
         debug('Chargement des données...');
         
+        // D'abord vérifier si nous avons des données dans localStorage
+        const savedData = localStorage.getItem(DASHBOARD_DATA_KEY);
+        if (savedData) {
+            try {
+                debug('Données trouvées dans localStorage');
+                const data = JSON.parse(savedData);
+                
+                // Vérifier si les données sont valides
+                if (data && data.refineries && Array.isArray(data.refineries)) {
+                    allData = data;
+                    refineries = data.refineries;
+                    
+                    // Mettre à jour les informations de version
+                    const version = data.version || 'non définie';
+                    document.getElementById('tableVersionInfo').textContent = `Version: ${version}`;
+                    document.getElementById('editorVersionInfo').textContent = `Version: ${version}`;
+                    
+                    // Afficher les données dans le tableau
+                    displayRefineries();
+                    
+                    // Charger dans l'éditeur JSON
+                    document.getElementById('json-editor').value = JSON.stringify(data, null, 2);
+                    
+                    showNotification('table-notification', 'Données chargées depuis la base de données locale!', 'success');
+                    return true;
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement des données locales:', error);
+                debug('Erreur lors du chargement des données locales', error);
+            }
+        }
+        
+        // Si pas de données locales, essayer de charger depuis le fichier
         try {
             // Ajouter un paramètre pour éviter le cache
             const response = await fetch('data/refineries.json?t=' + Date.now());
@@ -873,6 +910,10 @@
             
             // Charger dans l'éditeur JSON
             document.getElementById('json-editor').value = JSON.stringify(data, null, 2);
+            
+            // Sauvegarder dans localStorage pour les prochaines utilisations
+            localStorage.setItem(DASHBOARD_DATA_KEY, JSON.stringify(data));
+            localStorage.setItem(DASHBOARD_VERSION_KEY, data.version || '1.0');
             
             // Stocker dans localStorage
             localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
@@ -1125,14 +1166,32 @@
             document.getElementById('json-editor').value = JSON.stringify(allData, null, 2);
         }
         
-        // Stocker dans localStorage
-        localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
-        signalChange();
+        // Sauvegarder dans localStorage
+        saveToLocalStorage();
         
         // Fermer la modal
         document.getElementById('delete-modal').style.display = 'none';
         
         showNotification('table-notification', 'Installation supprimée avec succès.', 'success');
+    }
+    
+    // Sauvegarder dans localStorage
+    function saveToLocalStorage() {
+        debug('Sauvegarde des données dans localStorage');
+        
+        // Sauvegarder les données principales
+        localStorage.setItem(DASHBOARD_DATA_KEY, JSON.stringify(allData));
+        
+        // Sauvegarder la version
+        if (allData && allData.version) {
+            localStorage.setItem(DASHBOARD_VERSION_KEY, allData.version);
+        }
+        
+        // Sauvegarder les données de refineries pour compatibilité
+        localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
+        
+        // Signaler le changement
+        signalChange();
     }
     
     // Sauvegarder les modifications d'une installation
@@ -1242,16 +1301,15 @@
             document.getElementById('json-editor').value = JSON.stringify(allData, null, 2);
         }
         
-        // Stocker dans localStorage
-        localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
-        signalChange();
+        // Sauvegarder dans localStorage
+        saveToLocalStorage();
         
         // Fermer la modal
         document.getElementById('edit-modal').style.display = 'none';
     }
     
     // Sauvegarder toutes les modifications
-    async function saveAllChanges() {
+    function saveAllChanges() {
         try {
             debug('Sauvegarde de toutes les modifications...');
             
@@ -1275,48 +1333,22 @@
                 allData.status_colors = STATUS_COLORS;
             }
             
-            // Afficher une notification de chargement
-            showNotification('table-notification', 'Sauvegarde en cours...', 'info');
-            
-            // Convertir en JSON et préparer pour l'envoi
+            // Convertir en JSON
             const dataStr = JSON.stringify(allData, null, 2);
             
-            // Tentative d'upload direct vers GitHub
-            try {
-                // Afficher la modal GitHub pour demander le token
-                document.getElementById('github-modal').style.display = 'block';
-                document.getElementById('github-message').value = `Mise à jour des données - ${new Date().toISOString().slice(0, 10)}`;
-                
-                // Aussi télécharger une copie locale pour sécurité
-                const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                const url = URL.createObjectURL(dataBlob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = 'refineries.json';
-                link.click();
-                
-                debug('Copie de sauvegarde téléchargée, attente du token GitHub pour l\'upload...');
-                
-            } catch (uploadError) {
-                console.error('Erreur lors de la tentative d\'upload:', uploadError);
-                debug('Erreur lors de la tentative d\'upload', uploadError);
-                
-                // En cas d'échec de l'upload, télécharger le fichier localement
-                const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                const url = URL.createObjectURL(dataBlob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = 'refineries.json';
-                link.click();
-                
-                showNotification('table-notification', 'Données sauvegardées localement. Veuillez les uploader manuellement.', 'warning');
-            }
+            // Sauvegarder dans localStorage
+            saveToLocalStorage();
             
-            // Stocker dans localStorage
-            localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
-            signalChange();
+            // Télécharger une copie de sauvegarde
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'refineries-backup.json';
+            link.click();
             
-            debug('Données préparées pour la sauvegarde');
+            debug('Données sauvegardées avec succès');
+            showNotification('table-notification', 'Données enregistrées avec succès! Votre dashboard est maintenant à jour.', 'success');
         } catch (error) {
             console.error('Erreur lors de la sauvegarde:', error);
             debug('Erreur lors de la sauvegarde', error);
@@ -1361,6 +1393,9 @@
             
             // Mettre à jour l'éditeur JSON
             document.getElementById('json-editor').value = JSON.stringify(allData, null, 2);
+            
+            // Sauvegarder dans localStorage
+            saveToLocalStorage();
             
             debug(`Version incrémentée à ${newVersion}`);
             showNotification('table-notification', `Version incrémentée à ${newVersion}`, 'success');
@@ -1438,9 +1473,8 @@
                 // Mettre à jour l'éditeur JSON
                 document.getElementById('json-editor').value = JSON.stringify(data, null, 2);
                 
-                // Stocker dans localStorage
-                localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
-                signalChange();
+                // Sauvegarder dans localStorage
+                saveToLocalStorage();
                 
                 showNotification('table-notification', 'Fichier importé avec succès!', 'success');
             } catch (error) {
@@ -1516,9 +1550,8 @@
             // Mettre à jour l'affichage
             displayRefineries();
             
-            // Stocker dans localStorage
-            localStorage.setItem(DATA_KEY, JSON.stringify(refineries));
-            signalChange();
+            // Sauvegarder dans localStorage
+            saveToLocalStorage();
             
             debug('Modifications JSON appliquées avec succès');
             showNotification('editor-notification', 'Modifications appliquées avec succès!', 'success');
