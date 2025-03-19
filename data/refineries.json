@@ -228,6 +228,18 @@
       "processing": "Spoke & Hub Technologies - Procédé hydrométallurgique",
       "notes": "Prévu pour produire des matériaux comme le carbonate de lithium, en pause depuis octobre 2023.",
       "website": "https://li-cycle.com/"
+    },
+    {
+      "id": 20,
+      "name": "CVMR Corporation",
+      "location": "Amarillo, TX, États-Unis",
+      "country": "États-Unis",
+      "coordinates": [35.2220, -101.8313],
+      "status": "Planifié",
+      "production": "Not specified",
+      "processing": "Vapour Metallurgy",
+      "notes": "Planned to start operations in 2025.",
+      "website": "https://www.cvmr.com/"
     }
   ],
   "status_colors": {
